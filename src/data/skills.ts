@@ -18,10 +18,9 @@ export const skills: Record<string, SkillDefinition> = {
               type: "counter",
               requireDamage: true,
               canCounterOnDeath: false,
-              nullifyCategories: [],
-              counterCategories: ["breath", "physical"],
+              nullifyCategories: ["breath", "physical", "magic"],
+              counterCategories: ["breath"],
               maxCounterCount: 1,
-              remainingCounterCount: 1,
               counterActionsToAttacker: [
                 {
                   type: "damage",
@@ -57,7 +56,7 @@ export const skills: Record<string, SkillDefinition> = {
     id: "test_ex_gauge",
     name: "テストEXゲージ",
     attributes: ["none"],
-    category: "physical",
+    category: "none",
     effects: [
       {
         target: { type: "none" },
@@ -66,6 +65,24 @@ export const skills: Record<string, SkillDefinition> = {
             type: "change_special_gauge",
             targetTeam: "self_team",
             amount: 10,
+          },
+        ],
+      },
+    ],
+  },
+  test_poison: {
+    id: "test_poison",
+    name: "テスト毒付与",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.5,
           },
         ],
       },
@@ -277,6 +294,134 @@ export const skills: Record<string, SkillDefinition> = {
         actions: [
           {
             type: "do_nothing",
+          },
+        ],
+      },
+    ],
+  },
+
+  ex_plus_1: {
+    id: "ex_plus_1",
+    name: "EXゲージ+1",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_special_gauge",
+            targetTeam: "self_team",
+            amount: 1,
+          },
+        ],
+      },
+    ],
+  },
+  ex_plus_2: {
+    id: "ex_plus_2",
+    name: "EXゲージ+2",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_special_gauge",
+            targetTeam: "self_team",
+            amount: 2,
+          },
+        ],
+      },
+    ],
+  },
+  ex_plus_3: {
+    id: "ex_plus_3",
+    name: "EXゲージ+3",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_special_gauge",
+            targetTeam: "self_team",
+            amount: 3,
+          },
+        ],
+      },
+    ],
+  },
+
+  fire_breath: {
+    id: "fire_breath",
+    name: "ファイヤーブレス",
+    attributes: ["fire"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.2,
+          },
+        ],
+      },
+    ],
+  },
+
+  fire_breath_ultra: {
+    id: "fire_breath_ultra",
+    name: "極炎のいき",
+    attributes: ["fire"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.7,
+          },
+        ],
+      },
+    ],
+  },
+
+  true_crimson_flare: {
+    id: "true_crimson_flare",
+    name: "真・スカーレッド・フレア",
+    attributes: ["fire"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.5,
+          },
+        ],
+      },
+    ],
+  },
+
+  dragon_rage: {
+    id: "dragon_rage",
+    name: "逆鱗",
+    attributes: ["none"],
+    category: "change_reel",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_reel",
+            amount: 1,
+            chance: 1,
           },
         ],
       },
@@ -568,6 +713,39 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 1.95,
             variance: 0.23,
+          },
+        ],
+      },
+    ],
+  },
+  revenge_horn: {
+    id: "revenge_horn",
+    name: "復讐の角葬",
+    attributes: ["earth"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "counter",
+            duration: 3,
+            params: {
+              type: "counter",
+              requireDamage: true,
+              canCounterOnDeath: false,
+              nullifyCategories: ["breath", "physical", "magic"],
+              counterCategories: ["physical"],
+              maxCounterCount: 1,
+              counterActionsToAttacker: [
+                {
+                  type: "damage",
+                  multiplier: 4.5,
+                },
+              ],
+              counterActionsToSelf: [],
+            },
           },
         ],
       },

@@ -241,7 +241,7 @@ function getSkillName(skillId: string): string {
     <div class="mx-auto max-w-6xl">
       <header class="mb-6">
         <h1 class="text-3xl font-bold text-red-400">
-          戦闘画面 仮
+          戦闘画面
         </h1>
 
         <p class="mt-2 text-slate-300">
@@ -572,7 +572,8 @@ function getSkillName(skillId: string): string {
 
         <!-- 戦闘ログ -->
         <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 lg:col-span-2">
-          <h2 class="mb-3 text-xl font-bold">
+
+          <h2 class="mb-3 text-xl font-bold text-slate-100">
             戦闘ログ
           </h2>
 

@@ -3,7 +3,7 @@ import type { UnitDefinition } from "./unit";
 import type { SkillDefinition } from "./skill";
 import type { TeamBonusResult } from "./teamBonus";
 import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
-import type { CounterEvent } from "./counter";
+import type { CounterEvent, SkillExecutionInfo } from "./counter";
 
 export interface BattleUnit {
   instanceId: string;
@@ -59,6 +59,7 @@ export interface PendingTargetSelection {
    * 対象選択で技処理が一時停止した時点までに記録されたカウンター候補。
    */
   counterEvents: CounterEvent[];
+  executionInfo: SkillExecutionInfo;
 }
 
 export interface BattleState {
