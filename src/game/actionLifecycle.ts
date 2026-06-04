@@ -15,6 +15,7 @@ export function finishActorTurn(
   state: BattleState,
   actorInstanceId: string,
 ): void {
+  state.logs.unshift(`行動終了処理開始: ${actorInstanceId}`);
   state.pendingTargetSelection = null;
 
   const actor = getBattleUnitByInstanceId(state, actorInstanceId);

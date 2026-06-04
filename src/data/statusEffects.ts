@@ -42,4 +42,10 @@ export const statusEffectDefinitions: Record<
     name: "リール移動封印",
     defaultDuration: 1,
   },
+
+  counter: {
+    id: "counter",
+    name: "カウンター",
+    defaultDuration: 3,
+  },
 };

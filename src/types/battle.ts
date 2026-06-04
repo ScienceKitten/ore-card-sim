@@ -2,7 +2,8 @@ import type { Position, SkillId, TeamSide } from "./common";
 import type { UnitDefinition } from "./unit";
 import type { SkillDefinition } from "./skill";
 import type { TeamBonusResult } from "./teamBonus";
-import type { StatusEffectId } from "./statusEffect";
+import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
+import type { CounterEvent } from "./counter";
 
 export interface BattleUnit {
   instanceId: string;
@@ -33,6 +34,11 @@ export interface BattleStatusEffect {
   remainingTurns: number;
   sourceUnitInstanceId: string;
   sourceSkillId: SkillId;
+
+  /**
+   * カウンター状態など、追加設定が必要な状態異常用。
+   */
+  params?: StatusEffectParams;
 }
 
 export interface BattleTeam {
@@ -47,12 +53,12 @@ export interface PendingTargetSelection {
   skill: SkillDefinition;
   effectIndex: number;
   selectableTargetInstanceIds: string[];
+  usedReelSlot: UsedReelSlot | null;
 
   /**
-   * この技がリールから選ばれている場合、その枠情報。
-   * 必殺技など、リール由来でない技の場合は null。
+   * 対象選択で技処理が一時停止した時点までに記録されたカウンター候補。
    */
-  usedReelSlot: UsedReelSlot | null;
+  counterEvents: CounterEvent[];
 }
 
 export interface BattleState {

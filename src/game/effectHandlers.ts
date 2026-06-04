@@ -3,9 +3,8 @@ import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
 import { addSpecialGauge, getOpponentTeam, getOwnTeam } from "./battleQueries";
-import type { StatusEffectId } from "../types/statusEffect";
-import { addStatusEffect } from "./statusEffects";
-
+import type { StatusEffectId, StatusEffectParams } from "../types/statusEffect";
+import { addStatusEffect, getStatusEffectName } from "./statusEffects";
 interface EffectContext {
   state: BattleState;
   actor: BattleUnit;
@@ -91,6 +90,7 @@ export function applyEffectAction(
       applyStatusEffect(
         action.statusEffectId,
         action.duration,
+        action.params,
         action.chance ?? 1,
         targets,
         context,
@@ -310,6 +310,7 @@ function applyReplaceUsedSkill(
 function applyStatusEffect(
   statusEffectId: StatusEffectId,
   duration: number | undefined,
+  params: StatusEffectParams | undefined,
   chance: number,
   targets: BattleUnit[],
   context: EffectContext,
@@ -318,7 +319,9 @@ function applyStatusEffect(
     if (target.currentHp <= 0) continue;
 
     if (!rollChance(chance)) {
-      //context.state.logs.unshift(`${target.definition.name} には${getStatusEffectName(statusEffectId)}が効かなかった。`,);
+      context.state.logs.unshift(
+        `${target.definition.name} には${getStatusEffectName(statusEffectId)}が効かなかった。`,
+      );
       continue;
     }
 
@@ -326,6 +329,7 @@ function applyStatusEffect(
       target,
       statusEffectId,
       duration,
+      params,
       sourceUnitInstanceId: context.actor.instanceId,
       sourceSkillId: context.skill.id,
       state: context.state,

@@ -171,7 +171,7 @@ function useSpecialSkill() {
 function selectTarget(instanceId: string) {
   if (!battleState.value) return
 
-  continueSkillWithSelectedTarget(battleState.value, instanceId)
+  continueSkillWithSelectedTarget(battleState.value, instanceId, skills)
 }
 function testCompleteAction() {
   if (!battleState.value) return

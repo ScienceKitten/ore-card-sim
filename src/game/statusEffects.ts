@@ -1,6 +1,11 @@
 import type { BattleState, BattleUnit } from "../types/battle";
 import type { SkillId } from "../types/common";
-import type { StatusEffectId } from "../types/statusEffect";
+import type {
+  CounterBattleStatusEffect,
+  CounterStatusParams,
+  StatusEffectId,
+  StatusEffectParams,
+} from "../types/statusEffect";
 import { statusEffectDefinitions } from "../data/statusEffects";
 import { addSpecialGauge, updateBattleResult } from "./battleQueries";
 import type { SkillCategory, SkillDefinition } from "../types/skill";
@@ -36,6 +41,7 @@ export interface AddStatusEffectInput {
   target: BattleUnit;
   statusEffectId: StatusEffectId;
   duration?: number;
+  params?: StatusEffectParams;
   sourceUnitInstanceId: string;
   sourceSkillId: SkillId;
   state: BattleState;
@@ -59,6 +65,7 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
       existing.remainingTurns = duration;
       existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
       existing.sourceSkillId = input.sourceSkillId;
+      existing.params = cloneStatusEffectParams(input.params);
 
       input.state.logs.unshift(
         `${input.target.definition.name} の${getStatusEffectName(input.statusEffectId)}の継続ターンが ${before} から ${duration} に更新された。`,
@@ -77,6 +84,7 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
     remainingTurns: duration,
     sourceUnitInstanceId: input.sourceUnitInstanceId,
     sourceSkillId: input.sourceSkillId,
+    params: cloneStatusEffectParams(input.params),
   });
 
   input.state.logs.unshift(
@@ -195,4 +203,83 @@ export function getSkillSealMessage(
   }
 
   return `${skill.name}は封印されている。`;
+}
+
+export function getCounterStatusEffect(
+  unit: BattleUnit,
+): CounterBattleStatusEffect | null {
+  const statusEffect = unit.statusEffects.find((effect) => {
+    return effect.id === "counter" && effect.params?.type === "counter";
+  });
+
+  return (statusEffect as CounterBattleStatusEffect | undefined) ?? null;
+}
+
+export function consumeCounterCount(unit: BattleUnit): void {
+  const counterStatus = getCounterStatusEffect(unit);
+
+  if (!counterStatus) return;
+
+  const params = counterStatus.params;
+  const remainingCounterCount = getRemainingCounterCount(params);
+
+  // null は回数無制限
+  if (remainingCounterCount === null) {
+    params.remainingCounterCount = null;
+    return;
+  }
+
+  const nextCount = remainingCounterCount - 1;
+  params.remainingCounterCount = nextCount;
+
+  if (nextCount <= 0) {
+    unit.statusEffects = unit.statusEffects.filter((effect) => {
+      return effect !== counterStatus;
+    });
+  }
+}
+
+function cloneStatusEffectParams(
+  params: StatusEffectParams | undefined,
+): StatusEffectParams | undefined {
+  if (!params) return undefined;
+
+  switch (params.type) {
+    case "counter":
+      return cloneCounterStatusParams(params);
+  }
+}
+
+function cloneCounterStatusParams(
+  params: CounterStatusParams,
+): CounterStatusParams {
+  const maxCounterCount = params.maxCounterCount;
+
+  return {
+    type: "counter",
+    requireDamage: params.requireDamage,
+    canCounterOnDeath: params.canCounterOnDeath,
+    nullifyCategories: [...params.nullifyCategories],
+    counterCategories: [...params.counterCategories],
+    maxCounterCount,
+    remainingCounterCount:
+      params.remainingCounterCount !== undefined
+        ? params.remainingCounterCount
+        : maxCounterCount,
+
+    counterActionsToAttacker: params.counterActionsToAttacker.map((action) => ({
+      ...action,
+    })),
+    counterActionsToSelf: params.counterActionsToSelf.map((action) => ({
+      ...action,
+    })),
+  };
+}
+
+export function getRemainingCounterCount(
+  params: CounterStatusParams,
+): number | null {
+  return params.remainingCounterCount !== undefined
+    ? params.remainingCounterCount
+    : params.maxCounterCount;
 }

@@ -1,4 +1,5 @@
 import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
+import type { CounterEvent } from "../types/counter";
 import type { SkillDefinition, SkillEffect } from "../types/skill";
 import {
   getActiveUnit,
@@ -6,20 +7,20 @@ import {
   getOwnTeam,
   setSpecialGauge,
 } from "./battleQueries";
-import { applyEffectAction } from "./effectHandlers";
-import {
-  getSelectableTargets,
-  needsManualTargetSelection,
-  selectTargetsAutomatically,
-} from "./targetSelectors";
 import { finishActorTurn } from "./actionLifecycle";
+import { recordCounterEventsForAction, resolveCounterEvents } from "./counter";
+import { applyEffectAction } from "./effectHandlers";
 import {
   canActByStatus,
   getCannotActMessage,
   getSkillSealMessage,
   isSkillSealedByStatus,
 } from "./statusEffects";
-``;
+import {
+  getSelectableTargets,
+  needsManualTargetSelection,
+  selectTargetsAutomatically,
+} from "./targetSelectors";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -35,20 +36,21 @@ export function executeRandomReelSkill(
     return;
   }
 
-  if (!canActByStatus(actor)) {
-    const message = getCannotActMessage(actor);
-    if (message) {
-      state.logs.unshift(message);
-    }
-
-    finishActorTurn(state, actor.instanceId);
-    return;
-  }
-
   if (actor.currentHp <= 0) {
     state.logs.unshift(
       `${actor.definition.name} は倒れているため行動できません。`,
     );
+    finishActorTurn(state, actor.instanceId);
+    return;
+  }
+
+  if (!canActByStatus(actor)) {
+    const message = getCannotActMessage(actor);
+
+    if (message) {
+      state.logs.unshift(message);
+    }
+
     finishActorTurn(state, actor.instanceId);
     return;
   }
@@ -65,7 +67,7 @@ export function executeRandomReelSkill(
   const skillId = reel[slotIndex];
   const skill = skills[skillId];
 
-  const usedReelSlot = {
+  const usedReelSlot: UsedReelSlot = {
     actorInstanceId: actor.instanceId,
     reelIndex: actor.currentReelIndex,
     slotIndex,
@@ -91,7 +93,7 @@ export function executeRandomReelSkill(
     return;
   }
 
-  executeSkill(state, skill, usedReelSlot);
+  executeSkill(state, skill, skills, usedReelSlot);
 }
 
 export function executeSpecialSkill(
@@ -118,6 +120,7 @@ export function executeSpecialSkill(
 
   if (!canActByStatus(actor)) {
     const message = getCannotActMessage(actor);
+
     if (message) {
       state.logs.unshift(message);
     }
@@ -160,12 +163,13 @@ export function executeSpecialSkill(
     `${actor.definition.name} は必殺技「${skill.name}」を発動した！`,
   );
 
-  executeSkillBody(state, actor, skill);
+  executeSkillBody(state, actor, skill, skills, null);
 }
 
 export function executeSkill(
   state: BattleState,
   skill: SkillDefinition,
+  skills: Record<string, SkillDefinition>,
   usedReelSlot: UsedReelSlot | null = null,
 ): void {
   if (state.result.status !== "in_progress") return;
@@ -180,24 +184,37 @@ export function executeSkill(
 
   state.logs.unshift(`${actor.definition.name} は「${skill.name}」を使った。`);
 
-  executeSkillBody(state, actor, skill, usedReelSlot);
+  executeSkillBody(state, actor, skill, skills, usedReelSlot);
 }
 
 function executeSkillBody(
   state: BattleState,
   actor: BattleUnit,
   skill: SkillDefinition,
-  usedReelSlot: UsedReelSlot | null = null,
+  skills: Record<string, SkillDefinition>,
+  usedReelSlot: UsedReelSlot | null,
 ): void {
-  executeEffectsFromIndex(state, actor, skill, 0, usedReelSlot);
+  const counterEvents: CounterEvent[] = [];
+
+  executeEffectsFromIndex(
+    state,
+    actor,
+    skill,
+    skills,
+    0,
+    usedReelSlot,
+    counterEvents,
+  );
 }
 
 function executeEffectsFromIndex(
   state: BattleState,
   actor: BattleUnit,
   skill: SkillDefinition,
+  skills: Record<string, SkillDefinition>,
   startEffectIndex: number,
-  usedReelSlot: UsedReelSlot | null = null,
+  usedReelSlot: UsedReelSlot | null,
+  counterEvents: CounterEvent[],
 ): void {
   for (
     let effectIndex = startEffectIndex;
@@ -215,7 +232,7 @@ function executeEffectsFromIndex(
 
       if (selectableTargets.length === 0) {
         state.logs.unshift("しかし、対象がいなかった。");
-        finishActorTurn(state, actor.instanceId);
+        finishSkillAndActorTurn(state, actor, skills, counterEvents);
         return;
       }
 
@@ -227,6 +244,7 @@ function executeEffectsFromIndex(
           effect,
           selectableTargets,
           usedReelSlot,
+          counterEvents,
         );
         continue;
       }
@@ -239,6 +257,7 @@ function executeEffectsFromIndex(
           (unit) => unit.instanceId,
         ),
         usedReelSlot,
+        counterEvents,
       };
 
       state.logs.unshift("対象を選択してください。");
@@ -249,19 +268,27 @@ function executeEffectsFromIndex(
 
     if (effect.target.type !== "none" && targets.length === 0) {
       state.logs.unshift("しかし、対象がいなかった。");
-      finishActorTurn(state, actor.instanceId);
+      finishSkillAndActorTurn(state, actor, skills, counterEvents);
       return;
     }
 
-    applySkillEffect(state, actor, skill, effect, targets, usedReelSlot);
+    applySkillEffect(
+      state,
+      actor,
+      skill,
+      effect,
+      targets,
+      usedReelSlot,
+      counterEvents,
+    );
   }
-
-  finishActorTurn(state, actor.instanceId);
+  finishSkillAndActorTurn(state, actor, skills, counterEvents);
 }
 
 export function continueSkillWithSelectedTarget(
   state: BattleState,
   selectedTargetInstanceId: string,
+  skills: Record<string, SkillDefinition>,
 ): void {
   const pending = state.pendingTargetSelection;
 
@@ -286,14 +313,24 @@ export function continueSkillWithSelectedTarget(
 
   state.pendingTargetSelection = null;
 
-  applySkillEffect(state, actor, skill, effect, [target], pending.usedReelSlot);
+  applySkillEffect(
+    state,
+    actor,
+    skill,
+    effect,
+    [target],
+    pending.usedReelSlot,
+    pending.counterEvents,
+  );
 
   executeEffectsFromIndex(
     state,
     actor,
     skill,
+    skills,
     pending.effectIndex + 1,
     pending.usedReelSlot,
+    pending.counterEvents,
   );
 }
 
@@ -304,8 +341,18 @@ function applySkillEffect(
   effect: SkillEffect,
   targets: BattleUnit[],
   usedReelSlot: UsedReelSlot | null,
+  counterEvents: CounterEvent[],
 ): void {
   for (const action of effect.actions) {
+    recordCounterEventsForAction(
+      state,
+      actor,
+      skill,
+      action,
+      targets,
+      counterEvents,
+    );
+
     applyEffectAction(action, targets, {
       state,
       actor,
@@ -313,4 +360,23 @@ function applySkillEffect(
       usedReelSlot,
     });
   }
+}
+
+function finishSkillAndActorTurn(
+  state: BattleState,
+  actor: BattleUnit,
+  skills: Record<string, SkillDefinition>,
+  counterEvents: CounterEvent[],
+): void {
+  state.logs.unshift("技処理終了: カウンター解決へ");
+
+  resolveCounterEvents(state, counterEvents, skills);
+
+  state.logs.unshift("カウンター解決終了: 行動終了処理へ");
+
+  if (state.result.status !== "in_progress") {
+    return;
+  }
+
+  finishActorTurn(state, actor.instanceId);
 }

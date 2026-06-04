@@ -2,6 +2,48 @@ import type { UnitDefinition } from "../types/unit";
 
 export const units: UnitDefinition[] = [
   {
+    id: "test_unit",
+    name: "テストユニット",
+    maxHp: 999,
+    attack: 10,
+    speed: 99,
+    species: "machine",
+    attribute: "none",
+    gender: "none",
+    reels: [
+      [
+        "test_combo_attack",
+        "test_combo_attack",
+        "test_combo_attack",
+        "test_combo_attack",
+        "test_combo_attack",
+        "test_combo_attack",
+      ],
+    ],
+    specialSkillId: "test_counter",
+  },
+  {
+    id: "test_slime",
+    name: "テストスライム",
+    maxHp: 999,
+    attack: 10,
+    speed: 99,
+    species: "slime",
+    attribute: "none",
+    gender: "none",
+    reels: [
+      [
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+      ],
+    ],
+    specialSkillId: "test_counter",
+  },
+  {
     id: "twenbee",
     name: "ツインビー",
     maxHp: 34,

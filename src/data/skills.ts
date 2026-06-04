@@ -1,6 +1,77 @@
 import type { SkillDefinition } from "../types/skill";
 
 export const skills: Record<string, SkillDefinition> = {
+  test_counter: {
+    id: "test_counter",
+    name: "テストカウンター",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "counter",
+            duration: 3,
+            params: {
+              type: "counter",
+              requireDamage: true,
+              canCounterOnDeath: false,
+              nullifyCategories: [],
+              counterCategories: ["breath", "physical"],
+              maxCounterCount: 1,
+              remainingCounterCount: 1,
+              counterActionsToAttacker: [
+                {
+                  type: "damage",
+                  multiplier: 1,
+                },
+              ],
+              counterActionsToSelf: [],
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  test_combo_attack: {
+    id: "test_combo_attack",
+    name: "テスト連撃",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 15, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.1,
+          },
+        ],
+      },
+    ],
+  },
+  test_ex_gauge: {
+    id: "test_ex_gauge",
+    name: "テストEXゲージ",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_special_gauge",
+            targetTeam: "self_team",
+            amount: 10,
+          },
+        ],
+      },
+    ],
+  },
+
   attack: {
     id: "attack",
     name: "こうげき",
@@ -13,8 +84,6 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 0.5,
-            chance: 1,
-            variance: 0.05,
           },
         ],
       },

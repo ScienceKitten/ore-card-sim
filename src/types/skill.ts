@@ -1,5 +1,5 @@
 import type { Attribute, SkillId } from "./common";
-import type { StatusEffectId } from "./statusEffect";
+import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
 
 export type SkillCategory =
   | "physical"
@@ -151,6 +151,11 @@ export interface ApplyStatusEffectAction {
    * 指定しない場合は状態異常側の defaultDuration を使う。
    */
   duration?: number;
+
+  /**
+   * カウンター状態など、状態異常ごとの追加パラメータ。
+   */
+  params?: StatusEffectParams;
 
   chance?: number;
 }
