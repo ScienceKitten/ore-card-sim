@@ -227,6 +227,10 @@ function restartBattleWithSameTeams() {
   currentScreen.value = 'battle'
 }
 
+function getSkillName(skillId: string): string {
+  return skills[skillId]?.name ?? skillId
+}
+
 </script>
 
 <template>
@@ -299,8 +303,8 @@ function restartBattleWithSameTeams() {
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
                     <span v-for="statusEffect in unit.statusEffects" :key="statusEffect.id"
                       class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
-                      {{ getStatusEffectName(statusEffect.id) }}
-                      {{ statusEffect.remainingTurns }}T
+                      {{ getStatusEffectName(statusEffect.id) }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
+                        statusEffect.remainingTurns }}T）
                     </span>
                   </div>
                 </div>
@@ -392,8 +396,8 @@ function restartBattleWithSameTeams() {
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
                     <span v-for="statusEffect in unit.statusEffects" :key="statusEffect.id"
                       class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
-                      {{ getStatusEffectName(statusEffect.id) }}
-                      {{ statusEffect.remainingTurns }}T
+                      {{ getStatusEffectName(statusEffect.id) }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
+                        statusEffect.remainingTurns }}T）
                     </span>
                   </div>
                 </div>
