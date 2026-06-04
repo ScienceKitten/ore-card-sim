@@ -238,7 +238,7 @@ export const units: UnitDefinition[] = [
     attribute: "water",
     gender: "none",
     reels: [
-      ["tackle", "freezing_breath", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["tackle", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       ["miss", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       ["miss", "heavy_tackle", "reel_up", "reel_up", "reel_up", "reel_up"],
       [
