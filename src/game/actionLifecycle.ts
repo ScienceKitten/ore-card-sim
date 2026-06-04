@@ -19,10 +19,8 @@ export function finishActorTurn(
 
   const actor = getBattleUnitByInstanceId(state, actorInstanceId);
 
-  if (actor) {
-    applyActionEndStatusEffects(state, actor);
-  }
-
+  // まず戦闘終了判定。
+  // 技の効果で敵を全滅させた場合などは、再行動や行動終了時処理に進まない。
   updateBattleResult(state);
 
   if (state.result.status !== "in_progress") {
@@ -31,6 +29,8 @@ export function finishActorTurn(
 
   const extraActionIndex = state.extraActionQueue.indexOf(actorInstanceId);
 
+  // 再行動予約がある場合は、予約を1つ消費して同じユニットを再度行動中にする。
+  // この場合、毒ダメージ・状態異常ターン消費などの「行動終了時処理」は行わない。
   if (extraActionIndex !== -1) {
     state.extraActionQueue.splice(extraActionIndex, 1);
 
@@ -42,6 +42,24 @@ export function finishActorTurn(
       resolveUnableToActActiveUnits(state);
       return;
     }
+
+    // 再行動予約があっても、本人が倒れている場合は再行動できない。
+    // 残っている同一ユニットの再行動予約も掃除しておく。
+    state.extraActionQueue = state.extraActionQueue.filter(
+      (queuedInstanceId) => queuedInstanceId !== actorInstanceId,
+    );
+  }
+
+  // ここまで来た場合だけ、正式な行動終了として扱う。
+  // つまり、再行動が残っていない最後の行動後だけ実行される。
+  if (actor) {
+    applyActionEndStatusEffects(state, actor);
+  }
+
+  updateBattleResult(state);
+
+  if (state.result.status !== "in_progress") {
+    return;
   }
 
   markUnitAsActed(state, actorInstanceId);

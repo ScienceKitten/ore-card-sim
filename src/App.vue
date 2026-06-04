@@ -21,6 +21,7 @@ import {
 } from './game/statusEffects'
 import type { BattleState, BattleUnit } from './types/battle'
 import type { BattleSetup } from './types/setup'
+import { finishActorTurn } from './game/actionLifecycle'
 
 type Screen = 'unit_select' | 'battle'
 
@@ -172,7 +173,6 @@ function selectTarget(instanceId: string) {
 
   continueSkillWithSelectedTarget(battleState.value, instanceId)
 }
-
 function testCompleteAction() {
   if (!battleState.value) return
   if (!battleState.value.activeUnitInstanceId) return
@@ -182,11 +182,9 @@ function testCompleteAction() {
 
   const actedUnitId = battleState.value.activeUnitInstanceId
 
-  markUnitAsActed(battleState.value, actedUnitId)
-
   battleState.value.logs.unshift(`${actedUnitId} は行動を完了した。`)
 
-  proceedTurnIfNeeded(battleState.value)
+  finishActorTurn(battleState.value, actedUnitId)
 }
 
 function isHighlightedReelSlot(slotIndex: number): boolean {
