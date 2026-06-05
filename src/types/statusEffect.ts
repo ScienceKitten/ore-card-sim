@@ -1,9 +1,5 @@
 import type { SkillCategory, EffectAction } from "./skill";
-import type {
-  BattleState,
-  BattleStatusEffect,
-  BattleUnit,
-} from "../types/battle";
+import type { BattleStatusEffect } from "../types/battle";
 ``;
 
 export type StatusEffectId =
@@ -18,6 +14,14 @@ export type StatusEffectId =
 export interface StatusEffectDefinition {
   id: StatusEffectId;
   name: string;
+
+  /**
+   * harmful: 不利な状態異常
+   * benefit: 有利な状態変化
+   * neutral: 有利不利どちらでもない状態
+   * except: 特殊扱い。通常の解除対象から外したいものなど
+   */
+  category: StatusEffectCategory;
 
   /**
    * 実行効果側で継続ターン数を指定しない場合に使う。
@@ -91,3 +95,5 @@ export type CounterBattleStatusEffect = BattleStatusEffect & {
   id: "counter";
   params: CounterStatusParams;
 };
+
+export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";

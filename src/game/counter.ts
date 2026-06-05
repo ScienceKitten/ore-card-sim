@@ -39,10 +39,10 @@ function hasCounterEvent(
 }
 
 export function recordCounterEventsForAction(
-  state: BattleState,
+  _state: BattleState,
   actor: BattleUnit,
   skill: SkillDefinition,
-  action: EffectAction,
+  _action: EffectAction,
   targets: BattleUnit[],
   counterEvents: CounterEvent[],
   executionInfo: SkillExecutionInfo,

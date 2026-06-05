@@ -11,10 +11,6 @@ import {
   executeSpecialSkill,
 } from './game/executeSkill'
 import {
-  markUnitAsActed,
-  proceedTurnIfNeeded,
-} from './game/turnManager'
-import {
   canActByStatus,
   getStatusEffectName,
   isSkillSealedByStatus,

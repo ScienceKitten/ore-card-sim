@@ -3,8 +3,17 @@ import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
 import { addSpecialGauge, getOpponentTeam, getOwnTeam } from "./battleQueries";
-import type { StatusEffectId, StatusEffectParams } from "../types/statusEffect";
-import { addStatusEffect, getStatusEffectName } from "./statusEffects";
+import type {
+  StatusEffectCategory,
+  StatusEffectId,
+  StatusEffectParams,
+} from "../types/statusEffect";
+import {
+  addStatusEffect,
+  getStatusEffectName,
+  removeStatusEffectsByCondition,
+} from "./statusEffects";
+import type { SkillId } from "../types/common";
 interface EffectContext {
   state: BattleState;
   actor: BattleUnit;
@@ -95,6 +104,18 @@ export function applyEffectAction(
         targets,
         context,
       );
+      return;
+
+    case "remove_status_effect":
+      applyRemoveStatusEffect(
+        action.statusEffectIds,
+        action.categories,
+        action.sourceSkillIds,
+        action.chance ?? 1,
+        targets,
+        context,
+      );
+
       return;
 
     case "do_nothing":
@@ -334,5 +355,46 @@ function applyStatusEffect(
       sourceSkillId: context.skill.id,
       state: context.state,
     });
+  }
+}
+
+function applyRemoveStatusEffect(
+  statusEffectIds: StatusEffectId[] | undefined,
+  categories: StatusEffectCategory[] | undefined,
+  sourceSkillIds: SkillId[] | undefined,
+  chance: number,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  for (const target of targets) {
+    if (target.currentHp <= 0) continue;
+
+    if (!rollChance(chance)) {
+      context.state.logs.unshift(
+        `${target.definition.name} の状態異常解除は失敗した。`,
+      );
+      continue;
+    }
+
+    const removed = removeStatusEffectsByCondition(target, {
+      statusEffectIds,
+      categories,
+      sourceSkillIds,
+    });
+
+    if (removed.length === 0) {
+      context.state.logs.unshift(
+        `${target.definition.name} から解除できる状態異常はなかった。`,
+      );
+      continue;
+    }
+
+    const removedNames = removed.map((statusEffect) => {
+      return getStatusEffectName(statusEffect.id);
+    });
+
+    context.state.logs.unshift(
+      `${target.definition.name} の ${removedNames.join("、")} が解除された。`,
+    );
   }
 }

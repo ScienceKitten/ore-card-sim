@@ -1,8 +1,13 @@
-import type { BattleState, BattleUnit } from "../types/battle";
+import type {
+  BattleState,
+  BattleStatusEffect,
+  BattleUnit,
+} from "../types/battle";
 import type { SkillId } from "../types/common";
 import type {
   CounterBattleStatusEffect,
   CounterStatusParams,
+  StatusEffectCategory,
   StatusEffectId,
   StatusEffectParams,
 } from "../types/statusEffect";
@@ -282,4 +287,73 @@ export function getRemainingCounterCount(
   return params.remainingCounterCount !== undefined
     ? params.remainingCounterCount
     : params.maxCounterCount;
+}
+
+export function getStatusEffectCategory(
+  id: StatusEffectId,
+): StatusEffectCategory {
+  return statusEffectDefinitions[id].category;
+}
+
+export interface RemoveStatusEffectCondition {
+  statusEffectIds?: StatusEffectId[];
+  categories?: StatusEffectCategory[];
+  sourceSkillIds?: SkillId[];
+}
+
+function hasFilter<T>(items: T[] | undefined): items is T[] {
+  return Array.isArray(items) && items.length > 0;
+}
+
+function matchesRemoveStatusEffectCondition(
+  statusEffect: BattleStatusEffect,
+  condition: RemoveStatusEffectCondition,
+): boolean {
+  if (
+    hasFilter(condition.statusEffectIds) &&
+    !condition.statusEffectIds.includes(statusEffect.id)
+  ) {
+    return false;
+  }
+
+  const category = getStatusEffectCategory(statusEffect.id);
+
+  if (
+    hasFilter(condition.categories) &&
+    !condition.categories.includes(category)
+  ) {
+    return false;
+  }
+
+  if (
+    hasFilter(condition.sourceSkillIds) &&
+    !condition.sourceSkillIds.includes(statusEffect.sourceSkillId)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function removeStatusEffectsByCondition(
+  unit: BattleUnit,
+  condition: RemoveStatusEffectCondition,
+): BattleStatusEffect[] {
+  const removed: BattleStatusEffect[] = [];
+
+  unit.statusEffects = unit.statusEffects.filter((statusEffect) => {
+    const shouldRemove = matchesRemoveStatusEffectCondition(
+      statusEffect,
+      condition,
+    );
+
+    if (shouldRemove) {
+      removed.push(statusEffect);
+      return false;
+    }
+
+    return true;
+  });
+
+  return removed;
 }

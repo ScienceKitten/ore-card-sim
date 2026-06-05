@@ -1,5 +1,9 @@
 import type { Attribute, SkillId } from "./common";
-import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
+import type {
+  StatusEffectCategory,
+  StatusEffectId,
+  StatusEffectParams,
+} from "./statusEffect";
 
 export type SkillCategory =
   | "physical"
@@ -50,6 +54,7 @@ export type EffectAction =
   | ReplaceSkillOnTargetAction
   | ReplaceUsedSkillAction
   | ApplyStatusEffectAction
+  | RemoveStatusEffectAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -156,6 +161,30 @@ export interface ApplyStatusEffectAction {
    * カウンター状態など、状態異常ごとの追加パラメータ。
    */
   params?: StatusEffectParams;
+
+  chance?: number;
+}
+
+export interface RemoveStatusEffectAction {
+  type: "remove_status_effect";
+
+  /**
+   * 解除対象にする状態異常ID。
+   * 未指定または空配列なら、この条件は無視する。
+   */
+  statusEffectIds?: StatusEffectId[];
+
+  /**
+   * 解除対象にする状態異常分類。
+   * 未指定または空配列なら、この条件は無視する。
+   */
+  categories?: StatusEffectCategory[];
+
+  /**
+   * 解除対象にする付与元技ID。
+   * 未指定または空配列なら、この条件は無視する。
+   */
+  sourceSkillIds?: SkillId[];
 
   chance?: number;
 }
