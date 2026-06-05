@@ -1,5 +1,6 @@
 import type { SkillCategory, EffectAction } from "./skill";
 import type { BattleStatusEffect } from "../types/battle";
+import type { SkillId } from "./common";
 ``;
 
 export type StatusEffectId =
@@ -9,7 +10,8 @@ export type StatusEffectId =
   | "seal_magic"
   | "seal_breath"
   | "seal_change_reel"
-  | "counter";
+  | "counter"
+  | "charged_attack";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -29,7 +31,9 @@ export interface StatusEffectDefinition {
   defaultDuration: number;
 }
 
-export type StatusEffectParams = CounterStatusParams;
+export type StatusEffectParams =
+  | CounterStatusParams
+  | ChargedAttackStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -89,6 +93,29 @@ export interface CounterStatusParams {
    * カウンターユニット自身に対して実行する反撃効果。
    */
   counterActionsToSelf: EffectAction[];
+}
+
+export interface ChargedAttackStatusParams {
+  type: "charged_attack";
+
+  /**
+   * チャージ完了時に自動使用する技ID。
+   */
+  skillId: SkillId;
+
+  /**
+   * trueなら、チャージ中でも通常行動できる。
+   * false または未指定なら、残り2ターン以上の間は行動できない。
+   */
+  canMoveWhileCharge?: boolean;
+
+  /**
+   * 1回の damage 実行でこの数値を超えるダメージを受けた場合、
+   * チャージ状態を解除する。
+   *
+   * 未指定または0以下なら、ダメージ解除は発生しない。
+   */
+  cancelDamage?: number;
 }
 
 export type CounterBattleStatusEffect = BattleStatusEffect & {

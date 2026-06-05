@@ -89,6 +89,25 @@ export const skills: Record<string, SkillDefinition> = {
     ],
   },
 
+  test_paralysis: {
+    id: "test_poison",
+    name: "テスト麻痺付与",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "paralysis",
+            chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+
   cleanse: {
     id: "cleanse",
     name: "浄化",
@@ -102,6 +121,32 @@ export const skills: Record<string, SkillDefinition> = {
             type: "remove_status_effect",
             categories: ["harmful"],
             chance: 1,
+          },
+        ],
+      },
+    ],
+  },
+
+  test_charge_attack: {
+    id: "test_charge_attack",
+    name: "テストチャージ攻撃",
+    attributes: ["none"],
+    category: "change_reel",
+    effects: [
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 3,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "attack_lethal",
+              canMoveWhileCharge: false,
+              cancelDamage: 50,
+            },
           },
         ],
       },
@@ -412,7 +457,7 @@ export const skills: Record<string, SkillDefinition> = {
 
   true_crimson_flare: {
     id: "true_crimson_flare",
-    name: "真・スカーレッド・フレア",
+    name: "真・クリムゾン・フレア",
     attributes: ["fire"],
     category: "breath",
     effects: [
@@ -435,12 +480,11 @@ export const skills: Record<string, SkillDefinition> = {
     category: "change_reel",
     effects: [
       {
-        target: { type: "none" },
+        target: { type: "single_ally_except_self" },
         actions: [
           {
             type: "change_reel",
-            amount: 1,
-            chance: 1,
+            amount: 2,
           },
         ],
       },

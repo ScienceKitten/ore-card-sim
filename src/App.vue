@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import UnitSelectScreen from './components/UnitSelectScreen.vue'
 import { units } from './data/units'
 import { skills } from './data/skills'
@@ -12,18 +12,49 @@ import {
 } from './game/executeSkill'
 import {
   canActByStatus,
+  getChargedAttackStatusEffect,
   getStatusEffectName,
   isSkillSealedByStatus,
 } from './game/statusEffects'
 import type { BattleState, BattleUnit } from './types/battle'
 import type { BattleSetup } from './types/setup'
 import { finishActorTurn } from './game/actionLifecycle'
+import { resolveStartTurnEffects } from './game/startTurnEffect.ts'
 
 type Screen = 'unit_select' | 'battle'
 
 const currentScreen = ref<Screen>('unit_select')
 const battleSetup = ref<BattleSetup | null>(null)
 const battleState = ref<BattleState | null>(null)
+
+
+let resolvingStartTurnEffects = false
+
+watch(
+  () => [
+    currentScreen.value,
+    battleState.value?.activeUnitInstanceId,
+    battleState.value?.pendingTargetSelection,
+    battleState.value?.turn,
+  ],
+  () => {
+    if (!battleState.value) return
+    if (currentScreen.value !== 'battle') return
+    if (resolvingStartTurnEffects) return
+
+    resolvingStartTurnEffects = true
+
+    try {
+      resolveStartTurnEffects(battleState.value, skills)
+    } finally {
+      resolvingStartTurnEffects = false
+    }
+  },
+  {
+    immediate: true,
+    flush: 'post',
+  },
+)
 
 const highlightedRoll = ref<{
   actorInstanceId: string
@@ -52,7 +83,33 @@ const activeUnit = computed<BattleUnit | null>(() => {
 const activeUnitCanAct = computed(() => {
   if (!activeUnit.value) return false
 
-  return canActByStatus(activeUnit.value)
+  // 麻痺など、ユニット自体が行動不能な状態異常を先に見る
+  if (!canActByStatus(activeUnit.value)) {
+    return false
+  }
+
+  const chargedStatus = getChargedAttackStatusEffect(activeUnit.value)
+
+  // チャージ攻撃状態でなければ通常行動可能
+  if (!chargedStatus) {
+    return true
+  }
+
+  const canMoveWhileCharge =
+    chargedStatus.params.canMoveWhileCharge ?? false
+
+  // 残り2T以上で、チャージ中に動けない設定ならボタン操作不可
+  if (chargedStatus.remainingTurns > 1 && !canMoveWhileCharge) {
+    return false
+  }
+
+  // 残り1T以下なら、チャージ攻撃が自動発動する予定なのでボタン操作不可
+  if (chargedStatus.remainingTurns <= 1) {
+    return false
+  }
+
+  // canMoveWhileCharge が true かつ残り2T以上なら通常行動可能
+  return true
 })
 
 const activeUnitSpecialSkill = computed(() => {

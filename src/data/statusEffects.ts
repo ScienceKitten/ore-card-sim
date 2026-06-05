@@ -55,4 +55,11 @@ export const statusEffectDefinitions: Record<
     category: "except",
     defaultDuration: 3,
   },
+
+  charged_attack: {
+    id: "charged_attack",
+    name: "チャージ攻撃",
+    category: "except",
+    defaultDuration: 2,
+  },
 };

@@ -5,6 +5,7 @@ import type {
 } from "../types/battle";
 import type { SkillId } from "../types/common";
 import type {
+  ChargedAttackStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
   StatusEffectCategory,
@@ -252,6 +253,9 @@ function cloneStatusEffectParams(
   switch (params.type) {
     case "counter":
       return cloneCounterStatusParams(params);
+
+    case "charged_attack":
+      return cloneChargedAttackStatusParams(params);
   }
 }
 
@@ -356,4 +360,63 @@ export function removeStatusEffectsByCondition(
   });
 
   return removed;
+}
+
+export type ChargedAttackBattleStatusEffect = BattleStatusEffect & {
+  id: "charged_attack";
+  params: ChargedAttackStatusParams;
+};
+
+export function getChargedAttackStatusEffect(
+  unit: BattleUnit,
+): ChargedAttackBattleStatusEffect | null {
+  const statusEffect = unit.statusEffects.find((effect) => {
+    return (
+      effect.id === "charged_attack" && effect.params?.type === "charged_attack"
+    );
+  });
+
+  return (statusEffect as ChargedAttackBattleStatusEffect | undefined) ?? null;
+}
+
+export function removeStatusEffectInstance(
+  unit: BattleUnit,
+  statusEffect: BattleStatusEffect,
+): void {
+  unit.statusEffects = unit.statusEffects.filter((effect) => {
+    return effect !== statusEffect;
+  });
+}
+
+function cloneChargedAttackStatusParams(
+  params: ChargedAttackStatusParams,
+): ChargedAttackStatusParams {
+  return {
+    type: "charged_attack",
+    skillId: params.skillId,
+    canMoveWhileCharge: params.canMoveWhileCharge,
+    cancelDamage: params.cancelDamage,
+  };
+}
+
+export function cancelChargedAttackByDamage(
+  state: BattleState,
+  unit: BattleUnit,
+  damage: number,
+): void {
+  const chargedStatus = getChargedAttackStatusEffect(unit);
+
+  if (!chargedStatus) return;
+
+  const cancelDamage = chargedStatus.params.cancelDamage ?? 0;
+
+  if (cancelDamage <= 0) return;
+
+  if (damage <= cancelDamage) return;
+
+  removeStatusEffectInstance(unit, chargedStatus);
+
+  state.logs.unshift(
+    `${unit.definition.name} のチャージ攻撃はダメージにより解除された。`,
+  );
 }

@@ -10,6 +10,7 @@ import type {
 } from "../types/statusEffect";
 import {
   addStatusEffect,
+  cancelChargedAttackByDamage,
   getStatusEffectName,
   removeStatusEffectsByCondition,
 } from "./statusEffects";
@@ -51,7 +52,7 @@ export function applyEffectAction(
         return;
       }
 
-      applyChangeReel(action.amount, context);
+      applyChangeReel(action.amount, targets, context);
       return;
 
     case "change_special_gauge":
@@ -148,6 +149,8 @@ function applyDamage(
       `${target.definition.name} に ${calculation.damage} ダメージ。`,
     );
 
+    cancelChargedAttackByDamage(context.state, target, calculation.damage);
+
     const effectivenessText = getAttributeEffectivenessText(
       calculation.attributeMultiplier,
     );
@@ -156,9 +159,7 @@ function applyDamage(
       context.state.logs.unshift(effectivenessText);
     }
 
-    context.state.logs.unshift(
-      `属性倍率: x${calculation.attributeMultiplier.toFixed(2)}`,
-    );
+    //context.state.logs.unshift(`属性倍率: x${calculation.attributeMultiplier.toFixed(2)}`,);
 
     const targetTeam =
       target.side === "ally" ? context.state.allyTeam : context.state.enemyTeam;
@@ -192,29 +193,39 @@ function applyHeal(
   }
 }
 
-function applyChangeReel(amount: number, context: EffectContext): void {
-  const currentReelIndex = context.actor.currentReelIndex;
-  const maxReelIndex = context.actor.reels.length - 1;
+function applyChangeReel(
+  amount: number,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  const effectiveTargets = targets.length > 0 ? targets : [context.actor];
 
-  const nextReelIndex = Math.max(
-    0,
-    Math.min(maxReelIndex, currentReelIndex + amount),
-  );
+  for (const target of effectiveTargets) {
+    if (target.currentHp <= 0) continue;
 
-  context.actor.currentReelIndex = nextReelIndex;
+    const currentReelIndex = target.currentReelIndex;
+    const maxReelIndex = target.reels.length - 1;
 
-  if (nextReelIndex === currentReelIndex) {
-    context.state.logs.unshift(
-      `${context.actor.definition.name} のリールは ${nextReelIndex + 1} 番目のままだった。`,
+    const nextReelIndex = Math.max(
+      0,
+      Math.min(maxReelIndex, currentReelIndex + amount),
     );
-    return;
+
+    target.currentReelIndex = nextReelIndex;
+
+    if (nextReelIndex === currentReelIndex) {
+      context.state.logs.unshift(
+        `${target.definition.name} のリールは ${nextReelIndex + 1} 番目のままだった。`,
+      );
+      continue;
+    }
+
+    const directionText = amount > 0 ? "上がった" : "下がった";
+
+    context.state.logs.unshift(
+      `${target.definition.name} のリールが ${nextReelIndex + 1} 番目に${directionText}。`,
+    );
   }
-
-  const directionText = amount > 0 ? "上がった" : "下がった";
-
-  context.state.logs.unshift(
-    `${context.actor.definition.name} のリールが ${nextReelIndex + 1} 番目に${directionText}。`,
-  );
 }
 
 function applyGaugeChange(
