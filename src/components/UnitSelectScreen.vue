@@ -84,7 +84,7 @@ function startBattle() {
         </p>
       </header>
 
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="grid grid-cols-2 gap-6">
         <section class="rounded-2xl border border-blue-800 bg-slate-900 p-5">
           <h2 class="mb-4 text-2xl font-bold text-blue-300">
             味方チーム

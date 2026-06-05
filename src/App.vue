@@ -302,7 +302,9 @@ function getSkillName(skillId: string): string {
         </p>
       </header>
 
-      <section v-if="battleState" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+      <section v-if="battleState" class="grid grid-cols-2 gap-6">
+
         <!-- 味方チーム -->
         <div class="rounded-2xl border border-blue-800 bg-slate-900 p-5">
           <div class="mb-4 flex items-center justify-between gap-4">
@@ -490,7 +492,7 @@ function getSkillName(skillId: string): string {
         </div>
 
         <!-- ターン情報 -->
-        <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 lg:col-span-2">
+        <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 md:col-span-2">
           <h2 class="mb-3 text-xl font-bold">
             ターン情報
           </h2>
@@ -537,18 +539,22 @@ function getSkillName(skillId: string): string {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <div v-for="reelSkill in reelDisplaySkills" :key="`${reelSkill.slotNumber}-${reelSkill.skillId}`"
-                class="relative flex min-h-20 items-center justify-center rounded-xl border p-3 text-center text-sm font-bold transition-all duration-300"
-                :class="getReelSkillClass(reelSkill)">
-                {{ reelSkill.skillName }}
 
-                <span v-if="reelSkill.isSealed"
-                  class="absolute right-1 top-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  封印
-                </span>
+            <div class="overflow-x-auto">
+              <div class="grid min-w-180 grid-cols-6 gap-3">
+                <div v-for="reelSkill in reelDisplaySkills" :key="`${reelSkill.slotNumber}-${reelSkill.skillId}`"
+                  class="relative flex min-h-20 items-center justify-center rounded-xl border p-3 text-center text-sm font-bold transition-all duration-300"
+                  :class="getReelSkillClass(reelSkill)">
+                  {{ reelSkill.skillName }}
+
+                  <span v-if="reelSkill.isSealed"
+                    class="absolute right-1 top-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    封印
+                  </span>
+                </div>
               </div>
             </div>
+
           </div>
 
           <!-- 対象選択UI -->
@@ -624,17 +630,24 @@ function getSkillName(skillId: string): string {
         </section>
 
         <!-- 戦闘ログ -->
-        <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 lg:col-span-2">
+        <section class="col-span-2 rounded-2xl border border-slate-700 bg-slate-900 p-5">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h2 class="text-xl font-bold text-slate-100">
+              戦闘ログ
+            </h2>
 
-          <h2 class="mb-3 text-xl font-bold text-slate-100">
-            戦闘ログ
-          </h2>
+            <span class="rounded bg-slate-800 px-2 py-1 text-xs font-bold text-slate-400">
+              {{ battleState.logs.length }} 件
+            </span>
+          </div>
 
-          <ul class="space-y-1 text-slate-300">
-            <li v-for="log in battleState.logs" :key="log">
-              {{ log }}
-            </li>
-          </ul>
+          <div class="max-h-80 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <ul class="space-y-1 text-slate-300">
+              <li v-for="(log, index) in battleState.logs" :key="`${index}-${log}`" class="leading-relaxed">
+                {{ log }}
+              </li>
+            </ul>
+          </div>
         </section>
       </section>
 

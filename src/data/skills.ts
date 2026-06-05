@@ -793,7 +793,7 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "counter",
-            duration: 3,
+            duration: 2,
             params: {
               type: "counter",
               requireDamage: true,
@@ -807,8 +807,44 @@ export const skills: Record<string, SkillDefinition> = {
                   multiplier: 4.5,
                 },
               ],
-              counterActionsToSelf: [],
+              counterActionsToSelf: [
+                {
+                  type: "remove_status_effect",
+                  statusEffectIds: ["charged_attack"],
+                  sourceSkillIds: ["revenge_horn"],
+                  chance: 1,
+                },
+              ],
             },
+          },
+
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "revenge_horn_failure",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  revenge_horn_failure: {
+    id: "revenge_horn_failure",
+    name: "復讐の角葬・拡散",
+    attributes: ["earth"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.5,
           },
         ],
       },
