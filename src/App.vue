@@ -492,7 +492,7 @@ function getSkillName(skillId: string): string {
         </div>
 
         <!-- ターン情報 -->
-        <section class="rounded-2xl border border-slate-700 bg-slate-900 p-5 md:col-span-2">
+        <section class="col-span-2 rounded-2xl border border-slate-700 bg-slate-900 p-5">
           <h2 class="mb-3 text-xl font-bold">
             ターン情報
           </h2>
