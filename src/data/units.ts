@@ -65,6 +65,18 @@ export const units: UnitDefinition[] = [
     specialSkillId: "test_counter",
   },
   {
+    id: "test_souryo",
+    name: "テスト僧侶",
+    maxHp: 999,
+    attack: 10,
+    speed: 97,
+    species: "mage",
+    attribute: "none",
+    gender: "none",
+    reels: [["cleanse", "cleanse", "cleanse", "cleanse", "cleanse", "cleanse"]],
+    specialSkillId: "test_counter",
+  },
+  {
     id: "slime_mana",
     name: "スライム・マナ",
     maxHp: 252,
@@ -74,9 +86,9 @@ export const units: UnitDefinition[] = [
     attribute: "fire",
     gender: "none",
     reels: [
-      ["ex_plus1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
-      ["ex_plus1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
-      ["ex_plus1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["ex_plus_1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["ex_plus_1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["ex_plus_1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       [
         "miss",
         "miss",

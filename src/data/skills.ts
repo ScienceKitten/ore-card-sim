@@ -89,6 +89,25 @@ export const skills: Record<string, SkillDefinition> = {
     ],
   },
 
+  cleanse: {
+    id: "cleanse",
+    name: "浄化",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_ally_except_self" },
+        actions: [
+          {
+            type: "remove_status_effect",
+            categories: ["harmful"],
+            chance: 1,
+          },
+        ],
+      },
+    ],
+  },
+
   attack: {
     id: "attack",
     name: "こうげき",
