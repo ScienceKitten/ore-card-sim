@@ -642,7 +642,7 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
-            chance: 1,
+            chance: 0.2,
           },
         ],
       },
