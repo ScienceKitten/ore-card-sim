@@ -292,7 +292,7 @@ export function recordDamageTargetsForAction(
   targets: BattleUnit[],
   executionInfo: SkillExecutionInfo,
 ): void {
-  if (action.type !== "damage") return;
+  if (action.type !== "damage" && action.type !== "drain") return;
 
   for (const target of targets) {
     executionInfo.damageTargetInstanceIds.add(target.instanceId);

@@ -119,6 +119,15 @@ export function applyEffectAction(
 
       return;
 
+    case "drain":
+      if (!rollChance(action.chance ?? 1)) {
+        context.state.logs.unshift("しかし、ドレイン効果は発生しなかった。");
+        return;
+      }
+
+      applyDrain(action, targets, context);
+      return;
+
     case "do_nothing":
       context.state.logs.unshift(
         `${context.actor.definition.name} は何もしなかった。`,
@@ -131,7 +140,9 @@ function applyDamage(
   action: Extract<EffectAction, { type: "damage" }>,
   targets: BattleUnit[],
   context: EffectContext,
-): void {
+): AppliedDamageResult[] {
+  const results: AppliedDamageResult[] = [];
+
   for (const target of targets) {
     if (target.currentHp <= 0) continue;
 
@@ -145,11 +156,21 @@ function applyDamage(
     const beforeHp = target.currentHp;
     target.currentHp = Math.max(0, target.currentHp - calculation.damage);
 
+    const actualDamage = beforeHp - target.currentHp;
+
+    results.push({
+      target,
+      calculatedDamage: calculation.damage,
+      actualDamage,
+      beforeHp,
+      afterHp: target.currentHp,
+    });
+
+    cancelChargedAttackByDamage(context.state, target, calculation.damage);
+
     context.state.logs.unshift(
       `${target.definition.name} に ${calculation.damage} ダメージ。`,
     );
-
-    cancelChargedAttackByDamage(context.state, target, calculation.damage);
 
     const effectivenessText = getAttributeEffectivenessText(
       calculation.attributeMultiplier,
@@ -159,7 +180,9 @@ function applyDamage(
       context.state.logs.unshift(effectivenessText);
     }
 
-    //context.state.logs.unshift(`属性倍率: x${calculation.attributeMultiplier.toFixed(2)}`,);
+    context.state.logs.unshift(
+      `属性倍率: x${calculation.attributeMultiplier.toFixed(2)}`,
+    );
 
     const targetTeam =
       target.side === "ally" ? context.state.allyTeam : context.state.enemyTeam;
@@ -168,10 +191,11 @@ function applyDamage(
 
     if (beforeHp > 0 && target.currentHp === 0) {
       context.state.logs.unshift(`${target.definition.name} は倒れた。`);
-
       addSpecialGauge(targetTeam, 1);
     }
   }
+
+  return results;
 }
 
 function applyHeal(
@@ -408,4 +432,69 @@ function applyRemoveStatusEffect(
       `${target.definition.name} の ${removedNames.join("、")} が解除された。`,
     );
   }
+}
+
+interface AppliedDamageResult {
+  target: BattleUnit;
+  calculatedDamage: number;
+  actualDamage: number;
+  beforeHp: number;
+  afterHp: number;
+}
+
+function applyDrain(
+  action: Extract<EffectAction, { type: "drain" }>,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  const damageAction: Extract<EffectAction, { type: "damage" }> = {
+    type: "damage",
+    multiplier: action.multiplier,
+    variance: action.variance,
+    chance: 1,
+  };
+
+  const damageResults = applyDamage(damageAction, targets, context);
+
+  const totalCalculatedDamage = damageResults.reduce((total, result) => {
+    return total + result.calculatedDamage;
+  }, 0);
+
+  if (totalCalculatedDamage <= 0) {
+    context.state.logs.unshift(
+      `${context.actor.definition.name} はHPを吸収できなかった。`,
+    );
+    return;
+  }
+
+  if (context.actor.currentHp <= 0) {
+    context.state.logs.unshift(
+      `${context.actor.definition.name} は倒れているためHPを吸収できなかった。`,
+    );
+    return;
+  }
+
+  const healAmount = Math.max(
+    1,
+    Math.floor(totalCalculatedDamage * action.healMultiplier),
+  );
+
+  const beforeHp = context.actor.currentHp;
+  context.actor.currentHp = Math.min(
+    context.actor.maxHp,
+    context.actor.currentHp + healAmount,
+  );
+
+  const actualHeal = context.actor.currentHp - beforeHp;
+
+  if (actualHeal <= 0) {
+    context.state.logs.unshift(
+      `${context.actor.definition.name} のHPは回復しなかった。`,
+    );
+    return;
+  }
+
+  context.state.logs.unshift(
+    `${context.actor.definition.name} は ${actualHeal} HPを吸収した。`,
+  );
 }

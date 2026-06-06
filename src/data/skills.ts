@@ -419,6 +419,61 @@ export const skills: Record<string, SkillDefinition> = {
     ],
   },
 
+  craw: {
+    id: "craw",
+    name: "ひっかき",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.2,
+          },
+        ],
+      },
+    ],
+  },
+
+  inherit_charge: {
+    id: "inherit_charge",
+    name: "インヘリチャージ",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "drain",
+            multiplier: 1.5,
+            healMultiplier: 0.8,
+          },
+        ],
+      },
+    ],
+  },
+
+  xeno_impact: {
+    id: "xeno_impact",
+    name: "X.E.N.O.インパクト",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2,
+          },
+        ],
+      },
+    ],
+  },
+
   fire_breath: {
     id: "fire_breath",
     name: "ファイヤーブレス",

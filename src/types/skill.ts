@@ -47,6 +47,7 @@ export type TargetSelector =
 
 export type EffectAction =
   | DamageAction
+  | DrainAction
   | HealAction
   | ChangeReelAction
   | GaugeAction
@@ -187,4 +188,32 @@ export interface RemoveStatusEffectAction {
   sourceSkillIds?: SkillId[];
 
   chance?: number;
+}
+export interface DrainAction {
+  type: "drain";
+
+  /**
+   * 使用者の攻撃力に対するダメージ倍率。
+   */
+  multiplier: number;
+
+  /**
+   * 実際に与えたダメージに対する回復倍率。
+   * 例:
+   * 1 = 与えたダメージと同じだけ回復
+   * 0.5 = 与えたダメージの半分回復
+   */
+  healMultiplier: number;
+
+  /**
+   * 発生確率。
+   * 1 = 100%
+   */
+  chance?: number;
+
+  /**
+   * ダメージのランダム振れ幅。
+   * 0.05 = ±5%
+   */
+  variance?: number;
 }
