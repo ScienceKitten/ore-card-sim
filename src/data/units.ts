@@ -376,7 +376,7 @@ export const units: UnitDefinition[] = [
 
   {
     id: "fros",
-    name: "フロス",
+    name: "フロス（こうげき）",
     maxHp: 84,
     attack: 47,
     speed: 21,
@@ -389,6 +389,27 @@ export const units: UnitDefinition[] = [
         "attack_power1",
         "attack_power1",
         "attack_power1",
+        "crush_ice",
+        "crush_ice",
+      ],
+    ],
+    specialSkillId: "cold_frozen_ray",
+  },
+  {
+    id: "fros",
+    name: "フロス（カチワリ）",
+    maxHp: 84,
+    attack: 47,
+    speed: 21,
+    species: "dragon",
+    attribute: "water",
+    gender: "none",
+    reels: [
+      [
+        "miss",
+        "attack",
+        "attack_power1",
+        "crush_ice",
         "crush_ice",
         "crush_ice",
       ],
