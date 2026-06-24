@@ -375,7 +375,7 @@ export const units: UnitDefinition[] = [
   },
 
   {
-    id: "fros",
+    id: "fros_attack",
     name: "フロス（こうげき）",
     maxHp: 84,
     attack: 47,
@@ -396,7 +396,7 @@ export const units: UnitDefinition[] = [
     specialSkillId: "cold_frozen_ray",
   },
   {
-    id: "fros",
+    id: "fros_crush_ice",
     name: "フロス（カチワリ）",
     maxHp: 84,
     attack: 47,
