@@ -289,6 +289,25 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  thunder_power4: {
+    id: "thunder_power4",
+    name: "サンダー!!!!",
+    attributes: ["thunder"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.5,
+            chance: 1,
+            variance: 0.05,
+          },
+        ],
+      },
+    ],
+  },
 
   heal: {
     id: "heal",
@@ -413,6 +432,24 @@ export const skills: Record<string, SkillDefinition> = {
             type: "change_special_gauge",
             targetTeam: "self_team",
             amount: 3,
+          },
+        ],
+      },
+    ],
+  },
+
+  attack_evil_emperor: {
+    id: "attack_evil_emperor",
+    name: "邪帝の一撃",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.47,
           },
         ],
       },
@@ -1038,6 +1075,48 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 10000,
             chance: 0.6,
+          },
+        ],
+      },
+    ],
+  },
+  voltex_combo_sword: {
+    id: "voltex_combo_sword",
+    name: "澄渦連撃剣",
+    attributes: ["water"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.5,
+          },
+          {
+            type: "damage",
+            multiplier: 1.1,
+          },
+          {
+            type: "damage",
+            multiplier: 1,
+          },
+        ],
+      },
+    ],
+  },
+  divine_punishment_azure_fang_dragon_sword: {
+    id: "divine_punishment_azure_fang_dragon_sword",
+    name: "神罰・蒼牙竜剣陣",
+    attributes: ["water"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.5,
           },
         ],
       },
