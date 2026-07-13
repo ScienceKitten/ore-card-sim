@@ -13,6 +13,7 @@ import {
 import {
   canActByStatus,
   getChargedAttackStatusEffect,
+  getFrostbiteStatusEffect,
   getStatusEffectName,
   isConfused,
   isSkillSealedByStatus,
@@ -162,29 +163,50 @@ const reelDisplayReelIndex = computed(() => {
   return reelDisplayUnit.value.currentReelIndex
 })
 
-const reelDisplaySkills = computed(() => {
-  if (!reelDisplayUnit.value) return []
-
-  const reel = reelDisplayUnit.value.reels[reelDisplayReelIndex.value]
-
-  if (!reel) return []
-
-  return reel.map((skillId, index) => {
-    const skill = skills[skillId]
-    const isSealed = skill
-      ? isSkillSealedByStatus(reelDisplayUnit.value!, skill)
-      : false
-
-    return {
-      slotIndex: index,
-      slotNumber: index + 1,
-      skillId,
-      skillName: skill?.name ?? '未定義',
-      category: skill?.category ?? 'none',
-      isSealed,
+const reelDisplaySkills =
+  computed(() => {
+    if (!reelDisplayUnit.value) {
+      return [];
     }
-  })
-})
+
+    const reel = reelDisplayUnit.value.reels[reelDisplayReelIndex.value];
+
+    if (!reel) {
+      return [];
+    }
+
+    const frostbite = getFrostbiteStatusEffect(reelDisplayUnit.value,);
+
+    return reel.map(
+      (skillId, index) => {
+        const skill =
+          skills[skillId];
+
+        const isSealed = skill
+          ? isSkillSealedByStatus(
+            reelDisplayUnit.value!,
+            skill,
+          )
+          : false;
+
+        const isFrozen = frostbite?.params.freezingReelNums.includes(index) ?? false;
+
+        return {
+          slotIndex: index,
+          slotNumber: index + 1,
+          skillId,
+          skillName:
+            skill?.name ??
+            "未定義",
+          category:
+            skill?.category ??
+            "none",
+          isSealed,
+          isFrozen,
+        };
+      },
+    );
+  });
 
 
 const activeUnitSpecialGaugeConsumption =
@@ -295,20 +317,34 @@ function hasActed(unitInstanceId: string): boolean {
   return battleState.value.actedUnitInstanceIds.includes(unitInstanceId)
 }
 
-function getReelSkillClass(reelSkill: {
-  slotIndex: number
-  isSealed: boolean
-}): string {
-  if (isHighlightedReelSlot(reelSkill.slotIndex)) {
-    return 'scale-105 border-yellow-300 bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/30'
+function getReelSkillClass(
+  reelSkill: {
+    slotIndex: number
+    isSealed: boolean
+    isFrozen: boolean
+  },
+): string {
+  /**
+   * 抽選された枠の一時ハイライト。
+   */
+  if (isHighlightedReelSlot(reelSkill.slotIndex,)) {
+    return "scale-105 border-yellow-300 bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/30";
+  }
+
+  /**
+   * 凍傷は封印表示より優先する。
+   */
+  if (reelSkill.isFrozen) {
+    return "border-cyan-300 bg-cyan-950 text-cyan-100 ring-2 ring-cyan-400 shadow-md shadow-cyan-500/20";
   }
 
   if (reelSkill.isSealed) {
-    return 'border-red-500 bg-red-950 text-red-200 ring-1 ring-red-500'
+    return "border-red-500 bg-red-950 text-red-200 ring-1 ring-red-500";
   }
 
-  return 'border-slate-700 bg-slate-900 text-slate-100'
+  return "border-slate-700 bg-slate-900 text-slate-100";
 }
+
 
 function restartBattleWithSameTeams() {
   if (!battleSetup.value) return

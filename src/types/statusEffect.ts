@@ -11,6 +11,8 @@ export type StatusEffectId =
   | "seal_magic"
   | "seal_breath"
   | "seal_change_reel"
+  | "heal_block"
+  | "frostbite"
   | "counter"
   | "charged_attack";
 
@@ -34,7 +36,8 @@ export interface StatusEffectDefinition {
 
 export type StatusEffectParams =
   | CounterStatusParams
-  | ChargedAttackStatusParams;
+  | ChargedAttackStatusParams
+  | FrostbiteStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -123,5 +126,25 @@ export type CounterBattleStatusEffect = BattleStatusEffect & {
   id: "counter";
   params: CounterStatusParams;
 };
+
+export interface FrostbiteStatusParams {
+  type: "frostbite";
+
+  /**
+   * 凍傷レベル。
+   *
+   * 1～3の整数。
+   * 未指定時は1。
+   */
+  level?: number;
+
+  /**
+   * 凍傷の対象となる技リール枠。
+   *
+   * 0～5の整数を格納する。
+   * 技データでは指定せず、状態異常付与時に生成する。
+   */
+  freezingReelNums?: number[];
+}
 
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";

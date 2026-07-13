@@ -35,6 +35,7 @@ import {
   getSkillSealMessage,
   isConfused,
   isSkillSealedByStatus,
+  resolveFrostbiteOnReelSelection,
 } from "./statusEffects";
 import {
   getSelectableTargets,
@@ -118,7 +119,6 @@ export function executeRandomReelSkill(
 
   const slotIndex = Math.floor(Math.random() * reel.length);
   const skillId = reel[slotIndex];
-  const skill = skills[skillId];
 
   const usedReelSlot: UsedReelSlot = {
     actorInstanceId: actor.instanceId,
@@ -128,7 +128,19 @@ export function executeRandomReelSkill(
   };
 
   state.lastRolledReelSlot = usedReelSlot;
+  //凍傷の処理
+  const frostbiteActivated = resolveFrostbiteOnReelSelection(
+    state,
+    actor,
+    slotIndex,
+  );
 
+  if (frostbiteActivated) {
+    finishActorTurn(state, actor.instanceId);
+
+    return;
+  }
+  const skill = skills[skillId];
   if (!skill) {
     state.logs.unshift(`技ID "${skillId}" が見つかりません。`);
     finishActorTurn(state, actor.instanceId);

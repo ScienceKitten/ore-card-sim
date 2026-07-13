@@ -69,4 +69,16 @@ export const statusEffectDefinitions: Record<
     category: "except",
     defaultDuration: 2,
   },
+  heal_block: {
+    id: "heal_block",
+    name: "回復無効",
+    category: "harmful",
+    defaultDuration: 3,
+  },
+  frostbite: {
+    id: "frostbite",
+    name: "凍傷",
+    category: "harmful",
+    defaultDuration: 3,
+  },
 };

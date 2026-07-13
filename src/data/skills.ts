@@ -1312,6 +1312,100 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  song_samsara: {
+    id: "song_samsara",
+    name: "輪音転唱",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "heal_block",
+            duration: 3,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "frostbite",
+            duration: 3,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "song_samsara_2",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  song_samsara_2: {
+    id: "song_samsara_2",
+    name: "輪音転唱・2番",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "frostbite",
+            duration: 3,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "song_samsara_3",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  song_samsara_3: {
+    id: "song_samsara_3",
+    name: "輪音転唱・3番",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2,
+          },
+        ],
+      },
+    ],
+  },
   voltex_combo_sword: {
     id: "voltex_combo_sword",
     name: "澄渦連撃剣",

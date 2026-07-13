@@ -621,7 +621,7 @@ export const units: UnitDefinition[] = [
         "attack_evil_emperor",
       ],
     ],
-    specialSkillId: "attack_evil_emperor",
+    specialSkillId: "song_samsara",
   },
   {
     id: "mayori_heavenly_dragon_knight",

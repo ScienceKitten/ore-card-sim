@@ -8,6 +8,7 @@ import type {
   ChargedAttackStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
+  FrostbiteStatusParams,
   StatusEffectCategory,
   StatusEffectId,
   StatusEffectParams,
@@ -69,6 +70,12 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
   const canApplyStatusEffect = resolveIncompatibleStatusEffects(input);
 
   if (!canApplyStatusEffect) {
+    return;
+  }
+  //凍傷専用処理
+  if (input.statusEffectId === "frostbite") {
+    addFrostbiteStatusEffect(input);
+
     return;
   }
 
@@ -271,6 +278,9 @@ function cloneStatusEffectParams(
 
     case "charged_attack":
       return cloneChargedAttackStatusParams(params);
+
+    case "frostbite":
+      return cloneFrostbiteStatusParams(params);
   }
 }
 
@@ -503,6 +513,174 @@ function resolveIncompatibleStatusEffects(
 
     return false;
   }
+
+  return true;
+}
+
+export type FrostbiteBattleStatusEffect = BattleStatusEffect & {
+  id: "frostbite";
+  params: FrostbiteStatusParams & {
+    level: number;
+    freezingReelNums: number[];
+  };
+};
+
+export function getFrostbiteStatusEffect(
+  unit: BattleUnit,
+): FrostbiteBattleStatusEffect | null {
+  const statusEffect = unit.statusEffects.find((effect) => {
+    return effect.id === "frostbite" && effect.params?.type === "frostbite";
+  });
+
+  return (statusEffect as FrostbiteBattleStatusEffect | undefined) ?? null;
+}
+
+function normalizeFrostbiteLevel(level: number | undefined): number {
+  const integerLevel = Math.trunc(level ?? 1);
+
+  return Math.min(3, Math.max(1, integerLevel));
+}
+
+function createFreezingReelNums(level: number): number[] {
+  const reelSlotIndexes = [0, 1, 2, 3, 4, 5];
+
+  /**
+   * Fisher-Yates方式でシャッフルする。
+   */
+  for (let index = reelSlotIndexes.length - 1; index > 0; index--) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+
+    [reelSlotIndexes[index], reelSlotIndexes[randomIndex]] = [
+      reelSlotIndexes[randomIndex],
+      reelSlotIndexes[index],
+    ];
+  }
+
+  return reelSlotIndexes.slice(0, level * 2).sort((a, b) => a - b);
+}
+
+function cloneFrostbiteStatusParams(
+  params: FrostbiteStatusParams,
+): FrostbiteStatusParams {
+  const level = normalizeFrostbiteLevel(params.level);
+
+  return {
+    type: "frostbite",
+    level,
+    freezingReelNums: params.freezingReelNums
+      ? [...params.freezingReelNums]
+      : createFreezingReelNums(level),
+  };
+}
+
+function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
+  const duration = input.duration ?? getDefaultStatusDuration("frostbite");
+
+  const incomingParams =
+    input.params?.type === "frostbite" ? input.params : undefined;
+
+  const incomingLevel = normalizeFrostbiteLevel(incomingParams?.level);
+
+  const existing = getFrostbiteStatusEffect(input.target);
+
+  /**
+   * 新規付与。
+   */
+  if (!existing) {
+    const freezingReelNums = createFreezingReelNums(incomingLevel);
+
+    input.target.statusEffects.push({
+      id: "frostbite",
+      remainingTurns: duration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      params: {
+        type: "frostbite",
+        level: incomingLevel,
+        freezingReelNums,
+      },
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} はレベル${incomingLevel}の凍傷になった。`,
+    );
+
+    return;
+  }
+
+  /**
+   * 既存のレベルへ新しいレベルを加算し、
+   * 最大3に制限する。
+   */
+  const beforeLevel = existing.params.level;
+
+  const nextLevel = Math.min(3, beforeLevel + incomingLevel);
+
+  const beforeDuration = existing.remainingTurns;
+
+  const nextDuration = Math.max(existing.remainingTurns, duration);
+
+  /**
+   * 新しいレベルに対応した数だけ、
+   * 凍傷リール枠をすべて再抽選する。
+   */
+  const nextFreezingReelNums = createFreezingReelNums(nextLevel);
+
+  existing.remainingTurns = nextDuration;
+
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
+  existing.sourceSkillId = input.sourceSkillId;
+
+  existing.params = {
+    type: "frostbite",
+    level: nextLevel,
+    freezingReelNums: nextFreezingReelNums,
+  };
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の凍傷がレベル${beforeLevel}からレベル${nextLevel}に強化された。`,
+  );
+
+  if (beforeDuration !== nextDuration) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} の凍傷の継続ターンが ${beforeDuration} から ${nextDuration} に更新された。`,
+    );
+  }
+}
+
+export function resolveFrostbiteOnReelSelection(
+  state: BattleState,
+  unit: BattleUnit,
+  slotIndex: number,
+): boolean {
+  const frostbite = getFrostbiteStatusEffect(unit);
+
+  if (!frostbite) {
+    return false;
+  }
+
+  const isFrozenSlot = frostbite.params.freezingReelNums.includes(slotIndex);
+
+  if (!isFrozenSlot) {
+    return false;
+  }
+
+  const level = frostbite.params.level;
+
+  const damage = Math.max(1, Math.floor(unit.maxHp * 0.2 * level));
+
+  unit.currentHp = Math.max(0, unit.currentHp - damage);
+
+  /**
+   * 凍傷効果が発動した時点で、
+   * 継続ターンに関係なく凍傷は解除する。
+   */
+  removeStatusEffectInstance(unit, frostbite);
+
+  state.logs.unshift(
+    `${unit.definition.name} は凍傷で行動に失敗し、${damage}ダメージを受けた。`,
+  );
 
   return true;
 }

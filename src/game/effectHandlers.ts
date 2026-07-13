@@ -15,6 +15,7 @@ import {
   removeStatusEffectsByCondition,
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
+import { applyHealing } from "./healing";
 interface EffectContext {
   state: BattleState;
   actor: BattleUnit;
@@ -210,15 +211,29 @@ function applyHeal(
   context: EffectContext,
 ): void {
   for (const target of targets) {
-    if (target.currentHp <= 0) continue;
+    const result = applyHealing({
+      state: context.state,
+      healer: context.actor,
+      target,
+      amount,
+      sourceType: "skill",
+      skill: context.skill,
+    });
 
-    const beforeHp = target.currentHp;
-    target.currentHp = Math.min(target.maxHp, target.currentHp + amount);
+    if (result.invalidTarget) {
+      continue;
+    }
 
-    const healed = target.currentHp - beforeHp;
+    if (result.blocked) {
+      context.state.logs.unshift(
+        `${target.definition.name} の回復は無効化された。`,
+      );
+
+      continue;
+    }
 
     context.state.logs.unshift(
-      `${target.definition.name} のHPが ${healed} 回復した。`,
+      `${target.definition.name} のHPが ${result.actualAmount} 回復した。`,
     );
   }
 }
@@ -485,22 +500,40 @@ function applyDrain(
     Math.floor(totalCalculatedDamage * action.healMultiplier),
   );
 
-  const beforeHp = context.actor.currentHp;
-  context.actor.currentHp = Math.min(
-    context.actor.maxHp,
-    context.actor.currentHp + healAmount,
-  );
+  const healingResult = applyHealing({
+    state: context.state,
+    healer: context.actor,
+    target: context.actor,
+    amount: healAmount,
+    sourceType: "drain",
+    skill: context.skill,
+  });
 
-  const actualHeal = context.actor.currentHp - beforeHp;
+  if (healingResult.invalidTarget) {
+    context.state.logs.unshift(
+      `${context.actor.definition.name} は倒れているためHPを吸収できなかった。`,
+    );
 
-  if (actualHeal <= 0) {
+    return;
+  }
+
+  if (healingResult.blocked) {
+    context.state.logs.unshift(
+      `${context.actor.definition.name} の回復は無効化された。`,
+    );
+
+    return;
+  }
+
+  if (healingResult.actualAmount <= 0) {
     context.state.logs.unshift(
       `${context.actor.definition.name} のHPは回復しなかった。`,
     );
+
     return;
   }
 
   context.state.logs.unshift(
-    `${context.actor.definition.name} は ${actualHeal} HPを吸収した。`,
+    `${context.actor.definition.name} は ${healingResult.actualAmount} HPを吸収した。`,
   );
 }
