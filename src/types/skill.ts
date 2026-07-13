@@ -36,13 +36,27 @@ export interface SkillEffect {
 
 export type TargetSelector =
   | { type: "single_enemy" }
-  | { type: "single_ally_except_self" }
+  | { type: "single_ally"; includeSelf?: boolean }
   | { type: "all_enemies" }
-  | { type: "all_allies" }
-  | { type: "random_enemies"; count: number; allowDuplicate: boolean }
+  | { type: "all_allies"; includeSelf?: boolean }
+  | {
+      type: "random_enemies";
+      count: number;
+      allowDuplicate: boolean;
+    }
   | { type: "self" }
-  | { type: "random_all_units"; count: number; allowDuplicate: boolean }
-  | { type: "random_all_except_self"; count: number; allowDuplicate: boolean }
+  | {
+      type: "random_all_units";
+      count: number;
+      allowDuplicate: boolean;
+      includeSelf?: boolean;
+    }
+  | {
+      type: "random_allies";
+      count: number;
+      allowDuplicate: boolean;
+      includeSelf?: boolean;
+    }
   | { type: "none" };
 
 export type EffectAction =
@@ -56,6 +70,7 @@ export type EffectAction =
   | ReplaceUsedSkillAction
   | ApplyStatusEffectAction
   | RemoveStatusEffectAction
+  | RandomAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -216,4 +231,24 @@ export interface DrainAction {
    * 0.05 = ±5%
    */
   variance?: number;
+}
+
+export interface RandomAction {
+  type: "random_action";
+
+  /**
+   * この中から1つの実行効果をランダムで選ぶ。
+   *
+   * 対象が複数いる場合は、対象ごとに個別抽選する。
+   */
+  actions: EffectAction[];
+
+  /**
+   * random_action自体の発生確率。
+   *
+   * 候補を選ぶ前に1回だけ判定する。
+   * 失敗した場合、すべての対象に対して
+   * 候補内の実行効果はどれも使われない。
+   */
+  chance?: number;
 }

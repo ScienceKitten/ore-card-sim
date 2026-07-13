@@ -1,6 +1,7 @@
 import type { BattleState, BattleUnit } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
-import type { CounterEvent, SkillExecutionInfo } from "../types/counter";
+import type { CounterEvent } from "../types/counter";
+import type { SkillExecutionInfo } from "../types/skillExecution";
 import { getBattleUnitByInstanceId, updateBattleResult } from "./battleQueries";
 import {
   consumeCounterCount,

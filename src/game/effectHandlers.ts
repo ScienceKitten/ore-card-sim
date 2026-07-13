@@ -133,6 +133,12 @@ export function applyEffectAction(
         `${context.actor.definition.name} は何もしなかった。`,
       );
       return;
+
+    case "random_action":
+      context.state.logs.unshift(
+        "ランダム効果を直接実行することはできません。",
+      );
+      return;
   }
 }
 

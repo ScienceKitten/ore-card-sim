@@ -80,5 +80,5 @@ function executeChargedAttack(
     `${actor.definition.name} はチャージ攻撃「${skill.name}」を放つ！`,
   );
 
-  executeSkill(state, skill, skills, null);
+  executeSkill(state, skill, skills, null, "charged_attack");
 }

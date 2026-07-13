@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
-import type { Position, UnitId } from '../types/common'
+import { attributeOrder, type Attribute, type Position, type UnitId } from '../types/common'
 import type { UnitDefinition } from '../types/unit'
 import type { BattleSetup } from '../types/setup'
 
@@ -18,6 +18,36 @@ const positions: { key: Position; label: string }[] = [
   { key: 'left', label: '左' },
   { key: 'right', label: '右' },
 ]
+
+const attributeOrderIndex =
+  new Map<Attribute, number>(
+    attributeOrder.map((attribute, index) => {
+      return [attribute, index]
+    }),
+  )
+
+const sortedUnits = computed<UnitDefinition[]>(() => {
+  return [...props.units].sort((unitA, unitB) => {
+    const orderA =
+      attributeOrderIndex.get(unitA.attribute) ??
+      Number.MAX_SAFE_INTEGER
+
+    const orderB =
+      attributeOrderIndex.get(unitB.attribute) ??
+      Number.MAX_SAFE_INTEGER
+
+    return orderA - orderB
+  })
+})
+
+const unitAttributeTextColors: Partial<
+  Record<Attribute, string>
+> = {
+  fire: '#f87171',
+  wind: '#4ade80',
+  water: '#67e8f9',
+  earth: '#fbbf24',
+}
 
 function createDefaultSetup(): BattleSetup {
   return {
@@ -70,6 +100,31 @@ function startBattle() {
     enemy: { ...selected.enemy },
   })
 }
+
+function getUnitAttributeTextColor(
+  unit: UnitDefinition,
+): string {
+  return (
+    unitAttributeTextColors[unit.attribute] ??
+    '#ffffff'
+  )
+}
+
+function getSelectedUnitTextColor(
+  unitId: UnitId,
+): string {
+  const unit = props.units.find((unit) => {
+    return unit.id === unitId
+  })
+
+  if (!unit) {
+    return '#ffffff'
+  }
+
+  return getUnitAttributeTextColor(unit)
+}
+
+
 </script>
 
 <template>
@@ -98,8 +153,15 @@ function startBattle() {
               </label>
 
               <select v-model="selected.ally[position.key]"
-                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
-                <option v-for="unit in units" :key="unit.id" :value="unit.id">
+                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2" :style="{
+                  color: getSelectedUnitTextColor(
+                    selected.ally[position.key],
+                  ),
+                }">
+                <option v-for="unit in sortedUnits" :key="unit.id" :value="unit.id" :style="{
+                  color: getUnitAttributeTextColor(unit),
+                  backgroundColor: '#1e293b',
+                }">
                   {{ unit.name }}
                 </option>
               </select>
@@ -124,8 +186,15 @@ function startBattle() {
               </label>
 
               <select v-model="selected.enemy[position.key]"
-                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
-                <option v-for="unit in units" :key="unit.id" :value="unit.id">
+                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2" :style="{
+                  color: getSelectedUnitTextColor(
+                    selected.enemy[position.key],
+                  ),
+                }">
+                <option v-for="unit in sortedUnits" :key="unit.id" :value="unit.id" :style="{
+                  color: getUnitAttributeTextColor(unit),
+                  backgroundColor: '#1e293b',
+                }">
                   {{ unit.name }}
                 </option>
               </select>

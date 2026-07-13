@@ -8,10 +8,3 @@ export interface CounterEvent {
   sourceSkillId: SkillId;
   sourceSkillCategory: SkillCategory;
 }
-
-export interface SkillExecutionInfo {
-  /**
-   * この技処理中に、damage action の対象になったユニット。
-   */
-  damageTargetInstanceIds: Set<string>;
-}

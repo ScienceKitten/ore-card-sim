@@ -15,6 +15,7 @@ import type {
 import { statusEffectDefinitions } from "../data/statusEffects";
 import { addSpecialGauge, updateBattleResult } from "./battleQueries";
 import type { SkillCategory, SkillDefinition } from "../types/skill";
+import type { TargetingMode } from "../types/skillExecution";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -29,6 +30,10 @@ export function hasStatusEffect(
   statusEffectId: StatusEffectId,
 ): boolean {
   return unit.statusEffects.some((effect) => effect.id === statusEffectId);
+}
+
+export function isConfused(unit: BattleUnit): boolean {
+  return hasStatusEffect(unit, "confusion");
 }
 
 export function canActByStatus(unit: BattleUnit): boolean {
@@ -57,6 +62,16 @@ export interface AddStatusEffectInput {
  * 同じ状態異常がすでにある場合は、残りターン数が長い方を採用する。
  */
 export function addStatusEffect(input: AddStatusEffectInput): void {
+  /**
+   * 混乱とチャージ攻撃など、
+   * 同時に存在できない状態異常を先に解決する。
+   */
+  const canApplyStatusEffect = resolveIncompatibleStatusEffects(input);
+
+  if (!canApplyStatusEffect) {
+    return;
+  }
+
   const duration =
     input.duration ?? getDefaultStatusDuration(input.statusEffectId);
 
@@ -419,4 +434,75 @@ export function cancelChargedAttackByDamage(
   state.logs.unshift(
     `${unit.definition.name} のチャージ攻撃はダメージにより解除された。`,
   );
+}
+
+/**
+ * 技実行開始時の対象選択モードを、
+ * 使用者の現在の状態異常から決定する。
+ *
+ * 状態異常の具体的な判定をexecuteSkill.tsへ
+ * 直接書かないための窓口。
+ */
+export function getTargetingModeByStatus(unit: BattleUnit): TargetingMode {
+  if (hasStatusEffect(unit, "confusion")) {
+    return "reverse_team";
+  }
+
+  return "normal";
+}
+
+/**
+ * 新しい状態異常を付与する前に、
+ * 同時に存在できない状態異常を処理する。
+ *
+ * 戻り値:
+ * true:
+ *   新しい状態異常の付与処理を続ける
+ *
+ * false:
+ *   新しい状態異常を付与せず終了する
+ */
+function resolveIncompatibleStatusEffects(
+  input: AddStatusEffectInput,
+): boolean {
+  const target = input.target;
+
+  /**
+   * 混乱を付与するとき、
+   * すでに持っているチャージ攻撃状態を解除する。
+   */
+  if (input.statusEffectId === "confusion") {
+    const chargedAttackEffects = target.statusEffects.filter((statusEffect) => {
+      return statusEffect.id === "charged_attack";
+    });
+
+    if (chargedAttackEffects.length > 0) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "charged_attack";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} のチャージ攻撃は混乱により解除された。`,
+      );
+    }
+
+    return true;
+  }
+
+  /**
+   * 混乱中にチャージ攻撃状態を付与しようとしても、
+   * チャージ攻撃状態は残らない。
+   */
+  if (
+    input.statusEffectId === "charged_attack" &&
+    hasStatusEffect(target, "confusion")
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} は混乱しているためチャージ攻撃状態になれなかった。`,
+    );
+
+    return false;
+  }
+
+  return true;
 }

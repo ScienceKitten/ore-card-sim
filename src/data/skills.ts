@@ -82,7 +82,6 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "poison",
-            chance: 0.5,
           },
         ],
       },
@@ -90,7 +89,7 @@ export const skills: Record<string, SkillDefinition> = {
   },
 
   test_paralysis: {
-    id: "test_poison",
+    id: "test_paralysis",
     name: "テスト麻痺付与",
     attributes: ["none"],
     category: "magic",
@@ -101,7 +100,46 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "paralysis",
-            chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  test_confusion: {
+    id: "test_confusion",
+    name: "テスト混乱付与",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+          },
+        ],
+      },
+    ],
+  },
+
+  test_ally_attack: {
+    id: "test_ally_attack",
+    name: "テスト味方攻撃",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: {
+          type: "random_allies",
+          count: 5,
+          allowDuplicate: true,
+        },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.5,
+            chance: 1,
           },
         ],
       },
@@ -115,7 +153,7 @@ export const skills: Record<string, SkillDefinition> = {
     category: "magic",
     effects: [
       {
-        target: { type: "single_ally_except_self" },
+        target: { type: "single_ally" },
         actions: [
           {
             type: "remove_status_effect",
@@ -303,6 +341,94 @@ export const skills: Record<string, SkillDefinition> = {
             multiplier: 2.5,
             chance: 1,
             variance: 0.05,
+          },
+        ],
+      },
+    ],
+  },
+  shine: {
+    id: "shine",
+    name: "シャイン",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.42,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.15,
+          },
+        ],
+      },
+    ],
+  },
+  shine_power1: {
+    id: "shine_power1",
+    name: "シャイン!",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.945,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.4,
+          },
+        ],
+      },
+    ],
+  },
+  shine_power2: {
+    id: "shine_power2",
+    name: "シャイン!!",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.26,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  shine_power3: {
+    id: "shine_power3",
+    name: "シャイン!!!",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.575,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.6,
           },
         ],
       },
@@ -572,7 +698,7 @@ export const skills: Record<string, SkillDefinition> = {
     category: "change_reel",
     effects: [
       {
-        target: { type: "single_ally_except_self" },
+        target: { type: "single_ally" },
         actions: [
           {
             type: "change_reel",
@@ -796,7 +922,7 @@ export const skills: Record<string, SkillDefinition> = {
         ],
       },
       {
-        target: { type: "all_allies" },
+        target: { type: "all_allies", includeSelf: true },
         actions: [
           {
             type: "heal",
@@ -842,7 +968,7 @@ export const skills: Record<string, SkillDefinition> = {
     effects: [
       {
         target: {
-          type: "random_all_except_self",
+          type: "random_allies",
           count: 5,
           allowDuplicate: true,
         },
@@ -1062,6 +1188,51 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  photon_breath: {
+    id: "photon_breath",
+    name: "フォトンブレス",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.2,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+            duration: 1,
+            chance: 0.3,
+          },
+        ],
+      },
+    ],
+  },
+  optical_laser: {
+    id: "optical_laser",
+    name: "オプティカルレーザー",
+    attributes: ["heat"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.3,
+          },
+        ],
+      },
+    ],
+  },
   death: {
     id: "death",
     name: "デス",
@@ -1075,6 +1246,67 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 10000,
             chance: 0.6,
+          },
+        ],
+      },
+    ],
+  },
+  gentle_preach: {
+    id: "gentle_preach",
+    name: "やさしい説教",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "paralysis",
+            chance: 0.9,
+          },
+        ],
+      },
+    ],
+  },
+  surprise_box: {
+    id: "surprise_box",
+    name: "びっくりばこ",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 1, allowDuplicate: false },
+        actions: [
+          {
+            type: "random_action",
+            chance: 0.9,
+            actions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "poison",
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "paralysis",
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "confusion",
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "seal_physical",
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "seal_magic",
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "seal_breath",
+              },
+            ],
           },
         ],
       },

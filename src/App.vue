@@ -4,7 +4,7 @@ import UnitSelectScreen from './components/UnitSelectScreen.vue'
 import { units } from './data/units'
 import { skills } from './data/skills'
 import { createBattleState } from './game/createBattleState'
-import { getBattleUnitByInstanceId } from './game/battleQueries'
+import { getBattleUnitByInstanceId, getSpecialGaugeConsumption } from './game/battleQueries'
 import {
   continueSkillWithSelectedTarget,
   executeRandomReelSkill,
@@ -14,6 +14,7 @@ import {
   canActByStatus,
   getChargedAttackStatusEffect,
   getStatusEffectName,
+  isConfused,
   isSkillSealedByStatus,
 } from './game/statusEffects'
 import type { BattleState, BattleUnit } from './types/battle'
@@ -122,6 +123,12 @@ const canUseSpecialSkill = computed(() => {
   if (!battleState.value) return false
   if (!activeUnit.value) return false
   if (!activeUnitCanAct.value) return false
+
+  /**
+   * 混乱中は必殺技ボタンから
+   * 任意に必殺技を選択できない。
+   */
+  if (isConfused(activeUnit.value)) return false;
   if (battleState.value.result.status !== 'in_progress') return false
   if (battleState.value.pendingTargetSelection) return false
 
@@ -179,6 +186,30 @@ const reelDisplaySkills = computed(() => {
   })
 })
 
+
+const activeUnitSpecialGaugeConsumption =
+  computed(() => {
+    if (!activeUnit.value) {
+      return 10;
+    }
+
+    return getSpecialGaugeConsumption(
+      activeUnit.value,
+    );
+  });
+
+const activeUnitIsConfused =
+  computed(() => {
+    if (!activeUnit.value) {
+      return false;
+    }
+
+    return isConfused(
+      activeUnit.value,
+    );
+  });
+
+
 function handleStartBattle(setup: BattleSetup) {
   battleSetup.value = setup
   battleState.value = createBattleState(setup, units)
@@ -212,13 +243,20 @@ function useRandomSkill() {
 }
 
 function useSpecialSkill() {
-  if (!battleState.value) return
-  if (battleState.value.pendingTargetSelection) return
-  if (!activeUnitCanAct.value) return
+  if (!battleState.value) {
+    return;
+  }
 
-  executeSpecialSkill(battleState.value, skills)
+  if (!canUseSpecialSkill.value) {
+    return;
+  }
 
-  highlightedRoll.value = null
+  executeSpecialSkill(
+    battleState.value,
+    skills,
+  );
+
+  highlightedRoll.value = null;
 }
 
 function selectTarget(instanceId: string) {
@@ -513,6 +551,11 @@ function getSkillName(skillId: string): string {
             <span class="font-bold text-purple-300">
               {{ activeUnitSpecialSkill?.name ?? '未定義' }}
             </span>
+
+            <span class="ml-2 text-sm text-slate-400">
+              消費 {{ activeUnitSpecialGaugeConsumption }}
+            </span>
+
           </p>
 
           <p v-if="activeUnit && !activeUnitCanAct"
@@ -600,6 +643,10 @@ function getSkillName(skillId: string): string {
               仮に行動完了
             </button>
           </div>
+          <p v-if="activeUnitIsConfused" class="mt-2 text-sm font-bold text-purple-300">
+            混乱中は必殺技を選択できません。
+            技を使うと必殺技が暴発することがあります。
+          </p>
 
           <div v-if="battleState.result.status !== 'in_progress'"
             class="mt-6 rounded-xl border border-green-600 bg-green-950 p-4">

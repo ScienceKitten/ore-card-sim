@@ -3,7 +3,8 @@ import type { UnitDefinition } from "./unit";
 import type { SkillDefinition } from "./skill";
 import type { TeamBonusResult } from "./teamBonus";
 import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
-import type { CounterEvent, SkillExecutionInfo } from "./counter";
+import type { CounterEvent } from "./counter";
+import type { SkillExecutionInfo } from "./skillExecution";
 
 export interface BattleUnit {
   instanceId: string;

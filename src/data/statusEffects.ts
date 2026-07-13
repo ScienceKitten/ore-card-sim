@@ -21,6 +21,13 @@ export const statusEffectDefinitions: Record<
     defaultDuration: 99,
   },
 
+  confusion: {
+    id: "confusion",
+    name: "混乱",
+    category: "harmful",
+    defaultDuration: 1,
+  },
+
   seal_physical: {
     id: "seal_physical",
     name: "物理封印",

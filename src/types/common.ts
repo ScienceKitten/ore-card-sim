@@ -9,6 +9,18 @@ export type Attribute =
   | "poison"
   | "none";
 
+export const attributeOrder: Attribute[] = [
+  "fire",
+  "water",
+  "wind",
+  "earth",
+  "heat",
+  "ice",
+  "thunder",
+  "poison",
+  "none",
+];
+
 export type Gender = "male" | "female" | "none" | "unknown";
 
 export type TeamSide = "ally" | "enemy";
