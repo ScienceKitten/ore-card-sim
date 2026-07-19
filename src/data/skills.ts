@@ -384,7 +384,7 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
-            chance: 0.4,
+            chance: 0.3,
           },
         ],
       },
@@ -406,7 +406,7 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
-            chance: 0.5,
+            chance: 0.4,
           },
         ],
       },
@@ -428,7 +428,7 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
-            chance: 0.6,
+            chance: 0.5,
           },
         ],
       },
@@ -822,6 +822,48 @@ export const skills: Record<string, SkillDefinition> = {
             type: "replace_used_skill",
             toSkillId: "miss",
             chance: 1,
+          },
+        ],
+      },
+    ],
+  },
+  wave_combo_attack: {
+    id: "wave_combo_attack",
+    name: "漣の連撃",
+    attributes: ["water"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.3,
+          },
+          {
+            type: "damage",
+            multiplier: 0.5,
+          },
+          {
+            type: "damage",
+            multiplier: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  trident_of_abyssal: {
+    id: "trident_of_abyssal",
+    name: "トライデントオブアビサル",
+    attributes: ["water"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.8,
           },
         ],
       },
@@ -1264,6 +1306,42 @@ export const skills: Record<string, SkillDefinition> = {
             type: "apply_status_effect",
             statusEffectId: "paralysis",
             chance: 0.9,
+          },
+        ],
+      },
+    ],
+  },
+  big_swing: {
+    id: "big_swing",
+    name: "ビッグスウィング",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.4,
+          },
+        ],
+      },
+    ],
+  },
+  very_super_rounding_punch: {
+    id: "very_super_rounding_punch",
+    name: "とてもすごいグルグルパンチ",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          { type: "damage", multiplier: 3.5 },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+            chance: 1,
           },
         ],
       },
