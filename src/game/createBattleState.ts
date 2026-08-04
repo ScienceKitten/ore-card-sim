@@ -112,6 +112,12 @@ export function createBattleState(
     pendingTargetSelection: null,
     lastRolledReelSlot: null,
     extraActionQueue: [],
+
+    /**
+     * 古いセットアップに項目がない場合もオンとして扱う。
+     */
+    reelProbabilityBiasEnabled: setup.reelProbabilityBiasEnabled ?? true,
+
     logs: [
       ...createTeamBonusLogs(enemyTeam),
       ...createTeamBonusLogs(allyTeam),

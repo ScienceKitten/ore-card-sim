@@ -61,6 +61,7 @@ function createDefaultSetup(): BattleSetup {
       left: props.units[1]?.id ?? props.units[0]?.id ?? '',
       right: props.units[0]?.id ?? '',
     },
+    reelProbabilityBiasEnabled: true,
   }
 }
 
@@ -68,6 +69,7 @@ function cloneSetup(setup: BattleSetup): BattleSetup {
   return {
     ally: { ...setup.ally },
     enemy: { ...setup.enemy },
+    reelProbabilityBiasEnabled: setup.reelProbabilityBiasEnabled ?? true,
   }
 }
 
@@ -96,8 +98,14 @@ function startBattle() {
   if (!canStartBattle.value) return
 
   emit('startBattle', {
-    ally: { ...selected.ally },
-    enemy: { ...selected.enemy },
+    ally: {
+      ...selected.ally,
+    },
+    enemy: {
+      ...selected.enemy,
+    },
+    reelProbabilityBiasEnabled:
+      selected.reelProbabilityBiasEnabled,
   })
 }
 
@@ -236,6 +244,31 @@ function getSelectedUnitTextColor(
           </div>
         </div>
 
+        <div class="mt-6 flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
+          <div class="text-left">
+            <p class="font-bold text-slate-100">
+              リール確率の偏りを反映する
+            </p>
+
+            <p class="mt-1 text-sm text-slate-400">
+              前半3枠の合計確率を36%、後半3枠の合計確率を64%にします。
+            </p>
+          </div>
+
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input v-model="selected.reelProbabilityBiasEnabled" type="checkbox" class="peer sr-only">
+
+            <span class="h-7 w-12 rounded-full bg-slate-600 transition-colors
+             after:absolute after:left-1 after:top-1 after:h-5 after:w-5
+             after:rounded-full after:bg-white after:transition-transform
+             peer-checked:bg-blue-600
+             peer-checked:after:translate-x-5
+             peer-focus-visible:ring-2
+             peer-focus-visible:ring-blue-400
+             peer-focus-visible:ring-offset-2
+             peer-focus-visible:ring-offset-slate-950" />
+          </label>
+        </div>
         <button
           class="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-600"
           :disabled="!canStartBattle" @click="startBattle">

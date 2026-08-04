@@ -74,6 +74,7 @@ export interface BattleState {
   pendingTargetSelection: PendingTargetSelection | null;
   lastRolledReelSlot: UsedReelSlot | null;
   extraActionQueue: string[];
+  reelProbabilityBiasEnabled: boolean;
 
   logs: string[];
 

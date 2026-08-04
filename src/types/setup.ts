@@ -1,13 +1,13 @@
-
-import type { UnitId } from './common'
+import type { UnitId } from "./common";
 
 export interface TeamSelection {
-  leader: UnitId
-  left: UnitId
-  right: UnitId
+  leader: UnitId;
+  left: UnitId;
+  right: UnitId;
 }
 
 export interface BattleSetup {
-  ally: TeamSelection
-  enemy: TeamSelection
+  ally: TeamSelection;
+  enemy: TeamSelection;
+  reelProbabilityBiasEnabled: boolean;
 }

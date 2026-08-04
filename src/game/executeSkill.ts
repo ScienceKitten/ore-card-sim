@@ -117,7 +117,13 @@ export function executeRandomReelSkill(
     return;
   }
 
-  const slotIndex = Math.floor(Math.random() * reel.length);
+  /**
+   * 混乱中はスイッチがオンでも偏りを適用しない。
+   */
+  const useProbabilityBias =
+    state.reelProbabilityBiasEnabled && !actorIsConfused;
+
+  const slotIndex = selectReelSlotIndex(reel.length, useProbabilityBias);
   const skillId = reel[slotIndex];
 
   const usedReelSlot: UsedReelSlot = {
@@ -769,4 +775,52 @@ function applyRandomAction(
       false,
     );
   }
+}
+
+/**
+ * 技リールから使用する枠を選ぶ。
+ *
+ * 偏りあり、かつ6枠リールの場合:
+ *   0～2番目のグループ: 合計36%
+ *   3～5番目のグループ: 合計64%
+ *
+ * グループ内は均等確率。
+ *
+ * 混乱中は呼び出し側からuseProbabilityBias=falseが渡され、
+ * 通常の均等抽選になる。
+ */
+function selectReelSlotIndex(
+  reelLength: number,
+  useProbabilityBias: boolean,
+): number {
+  if (reelLength <= 0) {
+    throw new Error("空の技リールから技を選択することはできません。");
+  }
+
+  /**
+   * 現在のゲームデータではリールは6枠。
+   * 6枠でない場合は安全のため均等抽選へ戻す。
+   */
+  if (!useProbabilityBias || reelLength !== 6) {
+    return Math.floor(Math.random() * reelLength);
+  }
+
+  /**
+   * 前半グループを36%、後半グループを64%で選ぶ。
+   */
+  const selectFirstHalf = Math.random() < 0.36;
+
+  if (selectFirstHalf) {
+    /**
+     * 0、1、2から均等に選ぶ。
+     * 各枠は12%。
+     */
+    return Math.floor(Math.random() * 3);
+  }
+
+  /**
+   * 3、4、5から均等に選ぶ。
+   * 各枠は約21.33%。
+   */
+  return 3 + Math.floor(Math.random() * 3);
 }

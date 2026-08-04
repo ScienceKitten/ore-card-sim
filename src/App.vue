@@ -603,9 +603,16 @@ function getSkillName(skillId: string): string {
           <div v-if="reelDisplayUnit" class="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-4">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 class="text-lg font-bold text-slate-100">
-                  現在の技リール
-                </h3>
+                <div class="flex flex-wrap items-center gap-3">
+                  <h3 class="text-lg font-bold text-slate-100">
+                    現在の技リール
+                  </h3>
+
+                  <span v-if="battleState.reelProbabilityBiasEnabled"
+                    class="rounded-full border border-cyan-700 bg-cyan-950 px-3 py-1 text-xs font-bold text-cyan-200">
+                    リール確率の偏りが反映されています。
+                  </span>
+                </div>
 
                 <p class="mt-1 text-sm text-slate-400">
                   {{ reelDisplayUnit.definition.name }} /
