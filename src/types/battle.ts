@@ -2,7 +2,11 @@ import type { Position, SkillId, TeamSide } from "./common";
 import type { UnitDefinition } from "./unit";
 import type { SkillDefinition } from "./skill";
 import type { TeamBonusResult } from "./teamBonus";
-import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
+import type {
+  StatusEffectCategory,
+  StatusEffectId,
+  StatusEffectParams,
+} from "./statusEffect";
 import type { CounterEvent } from "./counter";
 import type { SkillExecutionInfo } from "./skillExecution";
 
@@ -37,7 +41,16 @@ export interface BattleStatusEffect {
   sourceSkillId: SkillId;
 
   /**
-   * カウンター状態など、追加設定が必要な状態異常用。
+   * この状態異常に実際に適用されている分類。
+   *
+   * 未指定の場合はstatusEffectDefinitionsの分類を使う。
+   * 古い戦闘データとの互換性のため任意項目にしている。
+   */
+  category?: StatusEffectCategory;
+
+  /**
+   * カウンター状態など、
+   * 追加設定が必要な状態異常用。
    */
   params?: StatusEffectParams;
 }

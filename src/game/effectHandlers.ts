@@ -101,6 +101,7 @@ export function applyEffectAction(
       applyStatusEffect(
         action.statusEffectId,
         action.duration,
+        action.category,
         action.params,
         action.chance ?? 1,
         targets,
@@ -387,18 +388,22 @@ function applyReplaceUsedSkill(
 function applyStatusEffect(
   statusEffectId: StatusEffectId,
   duration: number | undefined,
+  category: StatusEffectCategory | undefined,
   params: StatusEffectParams | undefined,
   chance: number,
   targets: BattleUnit[],
   context: EffectContext,
 ): void {
   for (const target of targets) {
-    if (target.currentHp <= 0) continue;
+    if (target.currentHp <= 0) {
+      continue;
+    }
 
     if (!rollChance(chance)) {
       context.state.logs.unshift(
         `${target.definition.name} には${getStatusEffectName(statusEffectId)}が効かなかった。`,
       );
+
       continue;
     }
 
@@ -406,6 +411,7 @@ function applyStatusEffect(
       target,
       statusEffectId,
       duration,
+      category,
       params,
       sourceUnitInstanceId: context.actor.instanceId,
       sourceSkillId: context.skill.id,

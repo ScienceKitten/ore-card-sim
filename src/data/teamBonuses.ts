@@ -25,11 +25,23 @@ export const speciesTeamBonuses: Partial<Record<Species, StatBonus>> = {
     maxHp: 10,
   },
 
+  machine: {
+    maxHp: 10,
+  },
+
   knight: {
     attack: 4,
   },
 
   slime: {
     maxHp: 5,
+  },
+
+  angel: {
+    attack: 4,
+  },
+
+  undead: {
+    maxHp: 10,
   },
 };

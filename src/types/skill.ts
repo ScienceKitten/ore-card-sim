@@ -169,12 +169,21 @@ export interface ApplyStatusEffectAction {
   statusEffectId: StatusEffectId;
 
   /**
-   * 指定しない場合は状態異常側の defaultDuration を使う。
+   * 指定しない場合は状態異常側のdefaultDurationを使う。
    */
   duration?: number;
 
   /**
-   * カウンター状態など、状態異常ごとの追加パラメータ。
+   * この付与によって生成される状態異常の分類。
+   *
+   * 指定しない場合はstatusEffectDefinitions側の
+   * categoryを使う。
+   */
+  category?: StatusEffectCategory;
+
+  /**
+   * カウンター状態など、
+   * 状態異常ごとの追加パラメータ。
    */
   params?: StatusEffectParams;
 

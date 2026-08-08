@@ -53,6 +53,14 @@ export interface AddStatusEffectInput {
   target: BattleUnit;
   statusEffectId: StatusEffectId;
   duration?: number;
+
+  /**
+   * この付与で適用する状態異常分類。
+   *
+   * 未指定の場合は定義側の分類を使う。
+   */
+  category?: StatusEffectCategory;
+
   params?: StatusEffectParams;
   sourceUnitInstanceId: string;
   sourceSkillId: SkillId;
@@ -63,16 +71,12 @@ export interface AddStatusEffectInput {
  * 同じ状態異常がすでにある場合は、残りターン数が長い方を採用する。
  */
 export function addStatusEffect(input: AddStatusEffectInput): void {
-  /**
-   * 混乱とチャージ攻撃など、
-   * 同時に存在できない状態異常を先に解決する。
-   */
   const canApplyStatusEffect = resolveIncompatibleStatusEffects(input);
 
   if (!canApplyStatusEffect) {
     return;
   }
-  //凍傷専用処理
+
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
 
@@ -82,17 +86,31 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
   const duration =
     input.duration ?? getDefaultStatusDuration(input.statusEffectId);
 
-  const existing = input.target.statusEffects.find(
-    (effect) => effect.id === input.statusEffectId,
+  const category = resolveAppliedStatusEffectCategory(
+    input.statusEffectId,
+    input.category,
   );
+
+  const existing = input.target.statusEffects.find((effect) => {
+    return effect.id === input.statusEffectId;
+  });
 
   if (existing) {
     const before = existing.remainingTurns;
 
     if (duration > existing.remainingTurns) {
       existing.remainingTurns = duration;
+
       existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
       existing.sourceSkillId = input.sourceSkillId;
+
+      /**
+       * 継続ターンが更新される場合は、
+       * 新しく付与した技の分類も反映する。
+       */
+      existing.category = category;
+
       existing.params = cloneStatusEffectParams(input.params);
 
       input.state.logs.unshift(
@@ -112,6 +130,7 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
     remainingTurns: duration,
     sourceUnitInstanceId: input.sourceUnitInstanceId,
     sourceSkillId: input.sourceSkillId,
+    category,
     params: cloneStatusEffectParams(input.params),
   });
 
@@ -345,7 +364,7 @@ function matchesRemoveStatusEffectCondition(
     return false;
   }
 
-  const category = getStatusEffectCategory(statusEffect.id);
+  const category = getAppliedStatusEffectCategory(statusEffect);
 
   if (
     hasFilter(condition.categories) &&
@@ -576,6 +595,11 @@ function cloneFrostbiteStatusParams(
 function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
   const duration = input.duration ?? getDefaultStatusDuration("frostbite");
 
+  const category = resolveAppliedStatusEffectCategory(
+    "frostbite",
+    input.category,
+  );
+
   const incomingParams =
     input.params?.type === "frostbite" ? input.params : undefined;
 
@@ -583,9 +607,6 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
 
   const existing = getFrostbiteStatusEffect(input.target);
 
-  /**
-   * 新規付与。
-   */
   if (!existing) {
     const freezingReelNums = createFreezingReelNums(incomingLevel);
 
@@ -594,6 +615,7 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
       remainingTurns: duration,
       sourceUnitInstanceId: input.sourceUnitInstanceId,
       sourceSkillId: input.sourceSkillId,
+      category,
       params: {
         type: "frostbite",
         level: incomingLevel,
@@ -608,10 +630,6 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
     return;
   }
 
-  /**
-   * 既存のレベルへ新しいレベルを加算し、
-   * 最大3に制限する。
-   */
   const beforeLevel = existing.params.level;
 
   const nextLevel = Math.min(3, beforeLevel + incomingLevel);
@@ -620,10 +638,6 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
 
   const nextDuration = Math.max(existing.remainingTurns, duration);
 
-  /**
-   * 新しいレベルに対応した数だけ、
-   * 凍傷リール枠をすべて再抽選する。
-   */
   const nextFreezingReelNums = createFreezingReelNums(nextLevel);
 
   existing.remainingTurns = nextDuration;
@@ -631,6 +645,12 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
   existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
 
   existing.sourceSkillId = input.sourceSkillId;
+
+  /**
+   * 凍傷は再付与が必ず有効なので、
+   * 新しく付与された分類へ更新する。
+   */
+  existing.category = category;
 
   existing.params = {
     type: "frostbite",
@@ -683,4 +703,37 @@ export function resolveFrostbiteOnReelSelection(
   );
 
   return true;
+}
+
+export function getDefaultStatusEffectCategory(
+  id: StatusEffectId,
+): StatusEffectCategory {
+  return statusEffectDefinitions[id].category;
+}
+
+/**
+ * 状態異常付与時に使う最終的な分類を決定する。
+ *
+ * 技側のcategoryが指定されていればそれを優先し、
+ * 未指定なら状態異常定義側のcategoryを使う。
+ */
+function resolveAppliedStatusEffectCategory(
+  statusEffectId: StatusEffectId,
+  category: StatusEffectCategory | undefined,
+): StatusEffectCategory {
+  return category ?? getDefaultStatusEffectCategory(statusEffectId);
+}
+
+/**
+ * 戦闘中の状態異常に実際に適用されている分類を返す。
+ *
+ * categoryが保存されていない古いデータでは、
+ * 状態異常定義側の分類へフォールバックする。
+ */
+export function getAppliedStatusEffectCategory(
+  statusEffect: BattleStatusEffect,
+): StatusEffectCategory {
+  return (
+    statusEffect.category ?? getDefaultStatusEffectCategory(statusEffect.id)
+  );
 }
