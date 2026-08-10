@@ -1,4 +1,4 @@
-import type { Position, SkillId, TeamSide } from "./common";
+import type { ItemId, Position, SkillId, TeamSide } from "./common";
 import type { UnitDefinition } from "./unit";
 import type { SkillDefinition } from "./skill";
 import type { TeamBonusResult } from "./teamBonus";
@@ -15,6 +15,12 @@ export interface BattleUnit {
   definition: UnitDefinition;
   side: TeamSide;
   position: Position;
+
+  /**
+   * 戦闘開始時に選択されたアイテム。
+   * nullはアイテムなし。
+   */
+  itemId: ItemId | null;
 
   maxHp: number;
   attack: number;

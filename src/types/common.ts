@@ -42,7 +42,8 @@ export type Species =
   | "demon"
   | "undead"
   | "angel"
-  | "beast";
+  | "beast"
+  | "aquatic";
 
 export const speciesLabels: Record<Species, string> = {
   dragon: "ドラゴン",
@@ -56,4 +57,7 @@ export const speciesLabels: Record<Species, string> = {
   undead: "アンデッド",
   angel: "天使",
   beast: "獣",
+  aquatic: "水族",
 };
+
+export type ItemId = string;

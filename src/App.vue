@@ -22,6 +22,7 @@ import type { BattleState, BattleUnit } from './types/battle'
 import type { BattleSetup } from './types/setup'
 import { finishActorTurn } from './game/actionLifecycle'
 import { resolveStartTurnEffects } from './game/startTurnEffect.ts'
+import { items } from "./data/items";
 
 type Screen = 'unit_select' | 'battle'
 
@@ -232,14 +233,45 @@ const activeUnitIsConfused =
   });
 
 
-function handleStartBattle(setup: BattleSetup) {
-  battleSetup.value = setup
-  battleState.value = createBattleState(setup, units)
-  highlightedRoll.value = null
-  currentScreen.value = 'battle'
+function handleStartBattle(
+  setup: BattleSetup,
+) {
+  battleSetup.value = {
+    ally: {
+      leader:
+        setup.ally.leader,
+      left:
+        setup.ally.left,
+      right:
+        setup.ally.right,
+      items: {
+        ...setup.ally.items,
+      },
+    },
+    enemy: {
+      leader:
+        setup.enemy.leader,
+      left:
+        setup.enemy.left,
+      right:
+        setup.enemy.right,
+      items: {
+        ...setup.enemy.items,
+      },
+    },
+    reelProbabilityBiasEnabled:
+      setup.reelProbabilityBiasEnabled,
+  };
 
-  console.log('戦闘開始データ:', setup)
-  console.log('戦闘状態:', battleState.value)
+  battleState.value =
+    createBattleState(
+      battleSetup.value,
+      units,
+      items,
+    );
+
+  highlightedRoll.value = null;
+  currentScreen.value = "battle";
 }
 
 function backToUnitSelect() {
@@ -349,19 +381,52 @@ function getReelSkillClass(
 function restartBattleWithSameTeams() {
   if (!battleSetup.value) return
 
-  battleState.value = createBattleState(battleSetup.value, units)
+  battleState.value = createBattleState(battleSetup.value, units, items)
   highlightedRoll.value = null
   currentScreen.value = 'battle'
 }
 
-function getSkillName(skillId: string): string {
-  return skills[skillId]?.name ?? skillId
+function getSkillName(
+  sourceId: string,
+): string {
+  const skill = skills[sourceId];
+
+  if (skill) {
+    return skill.name;
+  }
+
+  const itemPrefix = "item:";
+
+  if (
+    sourceId.startsWith(
+      itemPrefix,
+    )
+  ) {
+    const itemId =
+      sourceId.slice(
+        itemPrefix.length,
+      );
+
+    const item =
+      items.find((candidate) => {
+        return (
+          candidate.id === itemId
+        );
+      });
+
+    return (
+      item?.name ??
+      sourceId
+    );
+  }
+
+  return sourceId;
 }
 
 </script>
 
 <template>
-  <UnitSelectScreen v-if="currentScreen === 'unit_select'" :units="units" :initial-setup="battleSetup"
+  <UnitSelectScreen v-if="currentScreen === 'unit_select'" :units="units" :items="items" :initial-setup="battleSetup"
     @start-battle="handleStartBattle" />
 
   <main v-else class="min-h-screen bg-slate-950 p-6 text-white">

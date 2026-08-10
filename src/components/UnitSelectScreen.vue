@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
-import { attributeOrder, type Attribute, type Position, type UnitId } from '../types/common'
+import { attributeOrder, type Attribute, type ItemId, type Position, type UnitId } from '../types/common'
 import type { UnitDefinition } from '../types/unit'
 import type { BattleSetup } from '../types/setup'
+import type { ItemDefinition } from "../types/item";
+import { statusEffectDefinitions } from '../data/statusEffects';
 
 const props = defineProps<{
-  units: UnitDefinition[]
-  initialSetup?: BattleSetup | null
-}>()
+  units: UnitDefinition[];
+  items: ItemDefinition[];
+  initialSetup?: BattleSetup | null;
+}>();
 
 const emit = defineEmits<{
   startBattle: [setup: BattleSetup]
@@ -50,27 +53,106 @@ const unitAttributeTextColors: Partial<
 }
 
 function createDefaultSetup(): BattleSetup {
+  const allyLeader =
+    props.units[0]?.id ?? "";
+
+  const allyLeft =
+    props.units[1]?.id ??
+    allyLeader;
+
+  const allyRight =
+    props.units[2]?.id ??
+    allyLeader;
+
+  const enemyLeader =
+    props.units[2]?.id ??
+    allyLeader;
+
+  const enemyLeft =
+    props.units[1]?.id ??
+    allyLeader;
+
+  const enemyRight =
+    props.units[0]?.id ?? "";
+
   return {
     ally: {
-      leader: props.units[0]?.id ?? '',
-      left: props.units[1]?.id ?? props.units[0]?.id ?? '',
-      right: props.units[2]?.id ?? props.units[0]?.id ?? '',
+      leader: allyLeader,
+      left: allyLeft,
+      right: allyRight,
+      items: {
+        leader:
+          getInitialItemIdForUnit(
+            allyLeader,
+          ),
+        left:
+          getInitialItemIdForUnit(
+            allyLeft,
+          ),
+        right:
+          getInitialItemIdForUnit(
+            allyRight,
+          ),
+      },
     },
+
     enemy: {
-      leader: props.units[2]?.id ?? props.units[0]?.id ?? '',
-      left: props.units[1]?.id ?? props.units[0]?.id ?? '',
-      right: props.units[0]?.id ?? '',
+      leader: enemyLeader,
+      left: enemyLeft,
+      right: enemyRight,
+      items: {
+        leader:
+          getInitialItemIdForUnit(
+            enemyLeader,
+          ),
+        left:
+          getInitialItemIdForUnit(
+            enemyLeft,
+          ),
+        right:
+          getInitialItemIdForUnit(
+            enemyRight,
+          ),
+      },
     },
-    reelProbabilityBiasEnabled: true,
-  }
+
+    reelProbabilityBiasEnabled:
+      true,
+  };
 }
 
-function cloneSetup(setup: BattleSetup): BattleSetup {
+function cloneSetup(
+  setup: BattleSetup,
+): BattleSetup {
   return {
-    ally: { ...setup.ally },
-    enemy: { ...setup.enemy },
-    reelProbabilityBiasEnabled: setup.reelProbabilityBiasEnabled ?? true,
-  }
+    ally: {
+      leader:
+        setup.ally.leader,
+      left:
+        setup.ally.left,
+      right:
+        setup.ally.right,
+      items: {
+        ...setup.ally.items,
+      },
+    },
+
+    enemy: {
+      leader:
+        setup.enemy.leader,
+      left:
+        setup.enemy.left,
+      right:
+        setup.enemy.right,
+      items: {
+        ...setup.enemy.items,
+      },
+    },
+
+    reelProbabilityBiasEnabled:
+      setup.reelProbabilityBiasEnabled ??
+      true,
+  };
 }
 
 const selected = reactive<BattleSetup>(
@@ -95,18 +177,38 @@ function getUnitName(unitId: UnitId): string {
 }
 
 function startBattle() {
-  if (!canStartBattle.value) return
+  if (!canStartBattle.value) {
+    return;
+  }
 
-  emit('startBattle', {
+  emit("startBattle", {
     ally: {
-      ...selected.ally,
+      leader:
+        selected.ally.leader,
+      left:
+        selected.ally.left,
+      right:
+        selected.ally.right,
+      items: {
+        ...selected.ally.items,
+      },
     },
+
     enemy: {
-      ...selected.enemy,
+      leader:
+        selected.enemy.leader,
+      left:
+        selected.enemy.left,
+      right:
+        selected.enemy.right,
+      items: {
+        ...selected.enemy.items,
+      },
     },
+
     reelProbabilityBiasEnabled:
       selected.reelProbabilityBiasEnabled,
-  })
+  });
 }
 
 function getUnitAttributeTextColor(
@@ -130,6 +232,155 @@ function getSelectedUnitTextColor(
   }
 
   return getUnitAttributeTextColor(unit)
+}
+
+function getFirstItemId(): ItemId | null {
+  return props.items[0]?.id ?? null;
+}
+
+function getInitialItemIdForUnit(
+  unitId: UnitId,
+): ItemId | null {
+  const unit =
+    props.units.find((candidate) => {
+      return candidate.id === unitId;
+    });
+
+  if (!unit) {
+    return getFirstItemId();
+  }
+
+  if (
+    unit.defaultItemId !== undefined &&
+    props.items.some((item) => {
+      return (
+        item.id ===
+        unit.defaultItemId
+      );
+    })
+  ) {
+    return unit.defaultItemId;
+  }
+
+  return getFirstItemId();
+}
+
+function applyDefaultItemForSelectedUnit(
+  side: "ally" | "enemy",
+  position: Position,
+): void {
+  const unitId =
+    selected[side][position];
+
+  const unit =
+    props.units.find((candidate) => {
+      return candidate.id === unitId;
+    });
+
+  /**
+   * defaultItemIdが未定義なら、
+   * 現在のアイテム選択を変更しない。
+   */
+  if (
+    !unit ||
+    unit.defaultItemId === undefined
+  ) {
+    return;
+  }
+
+  const itemExists =
+    props.items.some((item) => {
+      return (
+        item.id ===
+        unit.defaultItemId
+      );
+    });
+
+  selected[side].items[position] =
+    itemExists
+      ? unit.defaultItemId
+      : null;
+}
+
+function getItemById(
+  itemId: ItemId | null,
+): ItemDefinition | null {
+  if (itemId === null) {
+    return null;
+  }
+
+  return (
+    props.items.find((item) => {
+      return item.id === itemId;
+    }) ?? null
+  );
+}
+
+function formatSignedNumber(
+  value: number,
+): string {
+  return value >= 0
+    ? `+${value}`
+    : `${value}`;
+}
+
+function getItemStatDescription(
+  item: ItemDefinition,
+): string {
+  const descriptions: string[] = [];
+
+  const maxHp =
+    item.statBonus.maxHp ?? 0;
+
+  const attack =
+    item.statBonus.attack ?? 0;
+
+  const speed =
+    item.statBonus.speed ?? 0;
+
+  if (maxHp !== 0) {
+    descriptions.push(
+      `HP${formatSignedNumber(maxHp)}`,
+    );
+  }
+
+  if (attack !== 0) {
+    descriptions.push(
+      `攻撃${formatSignedNumber(attack)}`,
+    );
+  }
+
+  if (speed !== 0) {
+    descriptions.push(
+      `素早さ${formatSignedNumber(speed)}`,
+    );
+  }
+
+  return descriptions.join("、");
+}
+
+function getItemStatusDescription(
+  item: ItemDefinition,
+): string {
+  if (
+    item.startStatusEffects.length === 0
+  ) {
+    return "";
+  }
+
+  const statusNames =
+    item.startStatusEffects.map(
+      (statusEffect) => {
+        return (
+          statusEffectDefinitions[
+            statusEffect.statusEffectId
+          ]?.name ??
+          statusEffect.statusEffectId
+        );
+      },
+    );
+
+  return `ゲーム開始時に${statusNames.join("、")}を付与`;
 }
 
 
@@ -161,6 +412,7 @@ function getSelectedUnitTextColor(
               </label>
 
               <select v-model="selected.ally[position.key]"
+                @change="applyDefaultItemForSelectedUnit('ally', position.key)"
                 class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2" :style="{
                   color: getSelectedUnitTextColor(
                     selected.ally[position.key],
@@ -177,6 +429,54 @@ function getSelectedUnitTextColor(
               <p class="mt-2 text-sm text-slate-400">
                 選択中: {{ getUnitName(selected.ally[position.key]) }}
               </p>
+              <label class="mb-2 mt-4 block font-bold text-slate-200">
+                所持アイテム
+              </label>
+
+              <select v-model="selected.ally.items[position.key]"
+                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                <option :value="null">
+                  アイテムなし
+                </option>
+
+                <option v-for="item in items" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+
+              <div v-if="getItemById(selected.ally.items[position.key])" class="mt-2 space-y-1 text-xs text-slate-400">
+                <p v-if="
+                  getItemStatDescription(
+                    getItemById(
+                      selected.ally.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatDescription(
+                      getItemById(
+                        selected.ally.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+
+                <p v-if="
+                  getItemStatusDescription(
+                    getItemById(
+                      selected.ally.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatusDescription(
+                      getItemById(
+                        selected.ally.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -194,6 +494,7 @@ function getSelectedUnitTextColor(
               </label>
 
               <select v-model="selected.enemy[position.key]"
+                @change="applyDefaultItemForSelectedUnit('enemy', position.key)"
                 class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2" :style="{
                   color: getSelectedUnitTextColor(
                     selected.enemy[position.key],
@@ -210,6 +511,54 @@ function getSelectedUnitTextColor(
               <p class="mt-2 text-sm text-slate-400">
                 選択中: {{ getUnitName(selected.enemy[position.key]) }}
               </p>
+              <label class="mb-2 mt-4 block font-bold text-slate-200">
+                所持アイテム
+              </label>
+
+              <select v-model="selected.enemy.items[position.key]"
+                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                <option :value="null">
+                  アイテムなし
+                </option>
+
+                <option v-for="item in items" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+
+              <div v-if="getItemById(selected.enemy.items[position.key])" class="mt-2 space-y-1 text-xs text-slate-400">
+                <p v-if="
+                  getItemStatDescription(
+                    getItemById(
+                      selected.enemy.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatDescription(
+                      getItemById(
+                        selected.enemy.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+
+                <p v-if="
+                  getItemStatusDescription(
+                    getItemById(
+                      selected.enemy.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatusDescription(
+                      getItemById(
+                        selected.enemy.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+              </div>
             </div>
           </div>
         </section>

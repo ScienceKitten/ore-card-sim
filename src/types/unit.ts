@@ -1,4 +1,11 @@
-import type { Attribute, Gender, SkillId, Species, UnitId } from "./common";
+import type {
+  Attribute,
+  Gender,
+  ItemId,
+  SkillId,
+  Species,
+  UnitId,
+} from "./common";
 
 export interface UnitDefinition {
   id: UnitId;
@@ -12,15 +19,19 @@ export interface UnitDefinition {
   attribute: Attribute;
   gender: Gender;
 
-  /**
-   * 最大4つの技リール。
-   * 各リールには6つの技IDを入れる想定。
-   */
   reels: SkillId[][];
 
-  /**
-   * 技リールとは別に持つ必殺技。
-   */
   specialSkillId: SkillId;
+
   specialGaugeConsumption?: number;
+
+  /**
+   * ユニット選択時に自動選択するアイテム。
+   *
+   * 未指定の場合:
+   * ・初回表示ではitems.tsの先頭アイテム
+   * ・選択画面上でユニットを変更した場合は、
+   *   現在選択中のアイテムを維持する
+   */
+  defaultItemId?: ItemId;
 }

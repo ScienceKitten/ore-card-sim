@@ -308,6 +308,28 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  dragon_tail: {
+    id: "dragon_tail",
+    name: "竜のしっぽ",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.9,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.2,
+          },
+        ],
+      },
+    ],
+  },
   thunder: {
     id: "thunder",
     name: "サンダー",
@@ -974,6 +996,28 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  anko_shot: {
+    id: "anko_shot",
+    name: "あんこ弾",
+    attributes: ["wind"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.4,
+          },
+        ],
+      },
+    ],
+  },
   double_edged_sword: {
     id: "double_edged_sword",
     name: "諸刃の剣",
@@ -1521,6 +1565,62 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.5,
+          },
+        ],
+      },
+    ],
+  },
+  dark_breath: {
+    id: "dark_breath",
+    name: "闇のいき",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.365,
+          },
+        ],
+      },
+    ],
+  },
+  demise_breath: {
+    id: "demise_breath",
+    name: "終焉のいき",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.15,
+          },
+        ],
+      },
+    ],
+  },
+  ragnarok_sequentia: {
+    id: "ragnarok_sequentia",
+    name: "ラグナロク・セクエンツィア",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.89,
           },
         ],
       },
