@@ -1626,4 +1626,38 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  white_breath: {
+    id: "white_breath",
+    name: "ホワイトブレス",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.2,
+          },
+        ],
+      },
+    ],
+  },
+  holy_breath: {
+    id: "holy_breath",
+    name: "ホーリーブレス",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.4,
+          },
+        ],
+      },
+    ],
+  },
 };
