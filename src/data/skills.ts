@@ -456,7 +456,50 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
-
+  dark: {
+    id: "dark",
+    name: "ダーク",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.42,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.15,
+          },
+        ],
+      },
+    ],
+  },
+  dark_power1: {
+    id: "dark_power1",
+    name: "ダーク!",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.945,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.3,
+          },
+        ],
+      },
+    ],
+  },
   heal: {
     id: "heal",
     name: "ヒール",
@@ -585,7 +628,23 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
-
+  attack_demon_king: {
+    id: "attack_demon_king",
+    name: "魔王の一撃",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.26,
+          },
+        ],
+      },
+    ],
+  },
   attack_evil_emperor: {
     id: "attack_evil_emperor",
     name: "邪帝の一撃",
@@ -1054,7 +1113,7 @@ export const skills: Record<string, SkillDefinition> = {
     effects: [
       {
         target: {
-          type: "random_allies",
+          type: "random_all_units",
           count: 5,
           allowDuplicate: true,
         },
@@ -1637,7 +1696,7 @@ export const skills: Record<string, SkillDefinition> = {
         actions: [
           {
             type: "damage",
-            multiplier: 1.2,
+            multiplier: 1.284,
           },
         ],
       },
@@ -1653,8 +1712,119 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "all_enemies" },
         actions: [
           {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["undead"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 2.0865,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 1.391,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  senrinbou: {
+    id: "senrinbou",
+    name: "千隣亡",
+    attributes: ["poison"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
             type: "damage",
-            multiplier: 1.4,
+            multiplier: 2.2,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.1,
+          },
+        ],
+      },
+    ],
+  },
+  wakugouku: {
+    id: "wakugouku",
+    name: "惑業苦",
+    attributes: ["earth"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.5,
+          },
+        ],
+      },
+    ],
+  },
+  grand_parade: {
+    id: "grand_parade",
+    name: "大行侵",
+    attributes: ["earth"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+            chance: 0.1,
+          },
+        ],
+      },
+    ],
+  },
+  death_roulette_II: {
+    id: "death_roulette_II",
+    name: "デスルーレットII",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "random_all_units",
+          count: 2,
+          allowDuplicate: true,
+          includeSelf: true,
+        },
+        actions: [
+          {
+            type: "conditional_action",
+            conditions: {
+              species: ["undead"],
+            },
+            matchedActions: [
+              {
+                type: "do_nothing",
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 100000,
+              },
+            ],
           },
         ],
       },

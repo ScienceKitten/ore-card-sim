@@ -40,6 +40,9 @@ export const speciesTeamBonuses: Partial<Record<Species, StatBonus>> = {
   angel: {
     attack: 4,
   },
+  demon: {
+    attack: 4,
+  },
 
   undead: {
     maxHp: 10,

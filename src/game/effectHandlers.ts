@@ -16,10 +16,25 @@ import {
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
 import { applyHealing } from "./healing";
+import type { EffectOrigin } from "../types/effectExecution";
+
 interface EffectContext {
   state: BattleState;
   actor: BattleUnit;
+
+  /**
+   * 属性・カテゴリ・技名などの参照用。
+   *
+   * direct効果でも、計算の基準として技情報を
+   * 持つ場合がある。
+   */
   skill: SkillDefinition;
+
+  /**
+   * 技による実行か、技を介さない直接実行か。
+   */
+  origin: EffectOrigin;
+
   usedReelSlot: UsedReelSlot | null;
 }
 
@@ -141,6 +156,10 @@ export function applyEffectAction(
         "ランダム効果を直接実行することはできません。",
       );
       return;
+
+    case "conditional_action":
+      context.state.logs.unshift("分岐効果を直接実行することはできません。");
+      return;
   }
 }
 
@@ -159,6 +178,7 @@ function applyDamage(
       defender: target,
       skill: context.skill,
       action,
+      origin: context.origin,
     });
 
     const beforeHp = target.currentHp;

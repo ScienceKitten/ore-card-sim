@@ -200,6 +200,10 @@ function applyCounterActionsToAttacker(
       state,
       actor: counterUnit,
       skill: sourceSkill,
+      origin: {
+        type: "direct",
+        source: "counter",
+      },
       usedReelSlot: null,
     });
   }
@@ -216,6 +220,10 @@ function applyCounterActionsToSelf(
       state,
       actor: counterUnit,
       skill: sourceSkill,
+      origin: {
+        type: "direct",
+        source: "counter",
+      },
       usedReelSlot: null,
     });
   }

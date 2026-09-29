@@ -8,6 +8,8 @@ import type {
 } from "../types/skillExecution";
 
 import type {
+  ConditionalAction,
+  ConditionalActionConditions,
   EffectAction,
   RandomAction,
   SkillDefinition,
@@ -33,6 +35,7 @@ import {
   canActByStatus,
   getCannotActMessage,
   getSkillSealMessage,
+  hasStatusEffect,
   isConfused,
   isSkillSealedByStatus,
   resolveFrostbiteOnReelSelection,
@@ -585,10 +588,6 @@ function applySkillAction(
   executionInfo: SkillExecutionInfo,
   isTargetless: boolean,
 ): void {
-  /**
-   * 複数候補からランダムで1つ選ぶ効果は、
-   * 先に候補を展開してから通常の実行効果処理へ戻す。
-   */
   if (action.type === "random_action") {
     applyRandomAction(
       state,
@@ -606,28 +605,40 @@ function applySkillAction(
   }
 
   /**
-   * 対象なし効果は、カウンターの記録・無効化判定を通さない。
+   * 条件分岐を対象ごとに展開する。
    */
+  if (action.type === "conditional_action") {
+    applyConditionalAction(
+      state,
+      actor,
+      skill,
+      action,
+      targets,
+      usedReelSlot,
+      counterEvents,
+      executionInfo,
+      isTargetless,
+    );
+
+    return;
+  }
+
   if (isTargetless) {
     applyEffectAction(action, [], {
       state,
       actor,
       skill,
+      origin: {
+        type: "skill",
+      },
       usedReelSlot,
     });
 
     return;
   }
 
-  /**
-   * 選ばれた実行効果がdamageまたはdrainなら、
-   * その対象を「この技のダメージ対象」として記録する。
-   */
   recordDamageTargetsForAction(action, targets, executionInfo);
 
-  /**
-   * 選ばれた実行効果に応じてカウンター候補を記録する。
-   */
   recordCounterEventsForAction(
     state,
     actor,
@@ -638,9 +649,6 @@ function applySkillAction(
     executionInfo,
   );
 
-  /**
-   * 対象ごとのカウンター無効化判定。
-   */
   const { appliedTargets, nullifiedTargets } = splitTargetsByCounterNullify(
     actor,
     skill,
@@ -660,6 +668,9 @@ function applySkillAction(
     state,
     actor,
     skill,
+    origin: {
+      type: "skill",
+    },
     usedReelSlot,
   });
 }
@@ -823,4 +834,121 @@ function selectReelSlotIndex(
    * 各枠は約21.33%。
    */
   return 3 + Math.floor(Math.random() * 3);
+}
+
+function hasConditionValues<T>(values: T[] | undefined): values is T[] {
+  return Array.isArray(values) && values.length > 0;
+}
+
+function matchesConditionalActionConditions(
+  target: BattleUnit,
+  conditions: ConditionalActionConditions,
+): boolean {
+  if (
+    hasConditionValues(conditions.genders) &&
+    !conditions.genders.includes(target.definition.gender)
+  ) {
+    return false;
+  }
+
+  if (
+    hasConditionValues(conditions.attributes) &&
+    !conditions.attributes.includes(target.definition.attribute)
+  ) {
+    return false;
+  }
+
+  if (
+    hasConditionValues(conditions.species) &&
+    !conditions.species.includes(target.definition.species)
+  ) {
+    return false;
+  }
+
+  if (
+    hasConditionValues(conditions.statusEffectIds) &&
+    !conditions.statusEffectIds.some((statusEffectId) => {
+      return hasStatusEffect(target, statusEffectId);
+    })
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function applyConditionalAction(
+  state: BattleState,
+  actor: BattleUnit,
+  skill: SkillDefinition,
+  action: ConditionalAction,
+  targets: BattleUnit[],
+  usedReelSlot: UsedReelSlot | null,
+  counterEvents: CounterEvent[],
+  executionInfo: SkillExecutionInfo,
+  isTargetless: boolean,
+): void {
+  /**
+   * conditional_action自体のchanceは
+   * 対象ごとの判定より前に1回だけ判定する。
+   */
+  if (!rollChance(action.chance ?? 1)) {
+    state.logs.unshift("しかし、分岐効果は発生しなかった。");
+
+    return;
+  }
+
+  /**
+   * 対象なしエフェクトでは、
+   * 判定対象となるユニットが存在しない。
+   *
+   * 現在の仕様では使用者を判定対象にせず、
+   * 条件不一致としてunmatchedActionsを実行する。
+   */
+  if (isTargetless) {
+    for (const selectedAction of action.unmatchedActions) {
+      applySkillAction(
+        state,
+        actor,
+        skill,
+        selectedAction,
+        [],
+        usedReelSlot,
+        counterEvents,
+        executionInfo,
+        true,
+      );
+    }
+
+    return;
+  }
+
+  /**
+   * 対象ごとに条件を判定し、
+   * 一致・不一致の分岐を個別に実行する。
+   */
+  for (const target of targets) {
+    const matched = matchesConditionalActionConditions(
+      target,
+      action.conditions,
+    );
+
+    const selectedActions = matched
+      ? action.matchedActions
+      : action.unmatchedActions;
+
+    for (const selectedAction of selectedActions) {
+      applySkillAction(
+        state,
+        actor,
+        skill,
+        selectedAction,
+        [target],
+        usedReelSlot,
+        counterEvents,
+        executionInfo,
+        false,
+      );
+    }
+  }
 }

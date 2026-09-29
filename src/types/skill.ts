@@ -1,4 +1,4 @@
-import type { Attribute, SkillId } from "./common";
+import type { Attribute, SkillId, Gender, Species } from "./common";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -71,6 +71,7 @@ export type EffectAction =
   | ApplyStatusEffectAction
   | RemoveStatusEffectAction
   | RandomAction
+  | ConditionalAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -258,6 +259,91 @@ export interface RandomAction {
    * 候補を選ぶ前に1回だけ判定する。
    * 失敗した場合、すべての対象に対して
    * 候補内の実行効果はどれも使われない。
+   */
+  chance?: number;
+}
+
+/**
+ * 分岐効果で対象を判定する条件。
+ *
+ * 同じ配列内:
+ *   いずれか1つに一致すれば条件を満たす。
+ *
+ * 異なる条件種類:
+ *   指定された条件種類をすべて満たす必要がある。
+ *
+ * 未指定または空配列:
+ *   その条件種類は判定しない。
+ */
+export interface ConditionalActionConditions {
+  /**
+   * 対象の性別。
+   *
+   * 例:
+   * ["male", "female"]
+   *
+   * maleまたはfemaleなら一致。
+   */
+  genders?: Gender[];
+
+  /**
+   * 対象の属性。
+   *
+   * 例:
+   * ["fire", "heat"]
+   *
+   * fireまたはheatなら一致。
+   */
+  attributes?: Attribute[];
+
+  /**
+   * 対象の種族。
+   *
+   * 例:
+   * ["dragon", "undead"]
+   *
+   * dragonまたはundeadなら一致。
+   */
+  species?: Species[];
+
+  /**
+   * 対象が現在持っている状態異常。
+   *
+   * 複数指定した場合は、そのうちいずれか1つを
+   * 持っていれば一致する。
+   */
+  statusEffectIds?: StatusEffectId[];
+}
+
+/**
+ * 条件に応じて異なる実行効果を適用する。
+ *
+ * 対象が複数いる場合は、対象ごとに個別判定する。
+ */
+export interface ConditionalAction {
+  type: "conditional_action";
+
+  conditions: ConditionalActionConditions;
+
+  /**
+   * 条件を満たした対象に実行する効果。
+   */
+  matchedActions: EffectAction[];
+
+  /**
+   * 条件を満たさなかった対象に実行する効果。
+   *
+   * 不一致時に何もしない場合は空配列を指定する。
+   */
+  unmatchedActions: EffectAction[];
+
+  /**
+   * conditional_action自体の発生確率。
+   *
+   * この判定は、対象ごとの条件判定より前に
+   * 1回だけ行われる。
+   *
+   * 未指定なら100%。
    */
   chance?: number;
 }

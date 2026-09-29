@@ -6,6 +6,7 @@ import {
   attributeChart,
 } from "../data/attributeChart";
 import { randomVariance } from "../utils/random";
+import type { EffectOrigin } from "../types/effectExecution";
 
 const DAMAGE_MIN = 1;
 const DAMAGE_MAX = 999;
@@ -15,6 +16,7 @@ export interface DamageCalculationInput {
   defender: BattleUnit;
   skill: SkillDefinition;
   action: DamageAction;
+  origin: EffectOrigin;
 }
 
 export interface DamageCalculationResult {
@@ -27,6 +29,10 @@ export interface DamageCalculationResult {
   finalMultiplier: number;
   skillAttributes: Attribute[];
   defenderAttribute: Attribute;
+  /**
+   * アンデッドに対する技カテゴリ補正。
+   */
+  undeadCategoryMultiplier: number;
 }
 
 /**
@@ -72,7 +78,9 @@ export function calculateDamage(
   input: DamageCalculationInput,
 ): DamageCalculationResult {
   const variance = input.action.variance ?? 0.05;
+
   const multiplier = input.action.multiplier;
+
   const attackValue = input.attacker.attack;
 
   const attributeMultiplier = calculateAttributeMultiplier(
@@ -80,12 +88,21 @@ export function calculateDamage(
     input.defender.definition.attribute,
   );
 
-  const finalMultiplier = multiplier * attributeMultiplier;
+  const undeadCategoryMultiplier = calculateUndeadSkillCategoryMultiplier(
+    input.defender,
+    input.skill,
+    input.origin,
+  );
+
+  const finalMultiplier =
+    multiplier * attributeMultiplier * undeadCategoryMultiplier;
 
   const baseDamage = attackValue * finalMultiplier;
+
   const variedDamage = randomVariance(baseDamage, variance);
 
   const rawDamage = Math.round(variedDamage);
+
   const damage = Math.min(DAMAGE_MAX, Math.max(DAMAGE_MIN, rawDamage));
 
   return {
@@ -95,6 +112,7 @@ export function calculateDamage(
     multiplier,
     variance,
     attributeMultiplier,
+    undeadCategoryMultiplier,
     finalMultiplier,
     skillAttributes: input.skill.attributes,
     defenderAttribute: input.defender.definition.attribute,
@@ -113,4 +131,38 @@ export function getAttributeEffectivenessText(
   }
 
   return "";
+}
+
+/**
+ * 技によるアンデッド対象へのカテゴリ補正を返す。
+ *
+ * 技を介さない直接効果には適用しない。
+ */
+export function calculateUndeadSkillCategoryMultiplier(
+  defender: BattleUnit,
+  skill: SkillDefinition,
+  origin: EffectOrigin,
+): number {
+  /**
+   * カウンターやターン終了時効果など、
+   * 技を介さない実行効果には適用しない。
+   */
+  if (origin.type !== "skill") {
+    return 1;
+  }
+
+  if (defender.definition.species !== "undead") {
+    return 1;
+  }
+
+  switch (skill.category) {
+    case "physical":
+      return 0.8;
+
+    case "magic":
+      return 1.2;
+
+    default:
+      return 1;
+  }
 }
