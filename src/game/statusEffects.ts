@@ -15,7 +15,7 @@ import type {
   StatusEffectParams,
 } from "../types/statusEffect";
 import { statusEffectDefinitions } from "../data/statusEffects";
-import { addSpecialGauge, updateBattleResult } from "./battleQueries";
+import { updateBattleResult } from "./battleQueries";
 import type { SkillCategory, SkillDefinition } from "../types/skill";
 import type { TargetingMode } from "../types/skillExecution";
 import {
