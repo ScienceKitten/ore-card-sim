@@ -1945,4 +1945,26 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  fetter_of_causality: {
+    id: "fetter_of_causality",
+    name: "因果の枷",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.47,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "heal_block",
+            duration: 1,
+          },
+        ],
+      },
+    ],
+  },
 };
