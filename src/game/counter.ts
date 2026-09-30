@@ -1,7 +1,10 @@
 import type { BattleState, BattleUnit } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import type { CounterEvent } from "../types/counter";
-import type { SkillExecutionInfo } from "../types/skillExecution";
+import type {
+  DamageResolutionState,
+  SkillExecutionInfo,
+} from "../types/skillExecution";
 import { getBattleUnitByInstanceId, updateBattleResult } from "./battleQueries";
 import {
   consumeCounterCount,
@@ -9,6 +12,10 @@ import {
   getRemainingCounterCount,
 } from "./statusEffects";
 import { applyEffectAction } from "./effectHandlers";
+import {
+  createDamageResolutionState,
+  finalizePendingDefeats,
+} from "./battleDamage";
 
 function makeCounterEventKey(
   attackerInstanceId: string,
@@ -165,12 +172,15 @@ export function resolveCounterEvents(
       `${counterUnit.definition.name} のカウンターが発動した！`,
     );
 
+    const damageResolution = createDamageResolutionState(state);
+
     applyCounterActionsToAttacker(
       state,
       counterUnit,
       attacker,
       sourceSkill,
       params.counterActionsToAttacker,
+      damageResolution,
     );
 
     applyCounterActionsToSelf(
@@ -178,11 +188,15 @@ export function resolveCounterEvents(
       counterUnit,
       sourceSkill,
       params.counterActionsToSelf,
+      damageResolution,
     );
 
     consumeCounterCount(counterUnit);
 
-    updateBattleResult(state);
+    finalizePendingDefeats(state, damageResolution);
+    if (state.result.status !== "in_progress") {
+      return;
+    }
   }
 
   updateBattleResult(state);
@@ -194,6 +208,7 @@ function applyCounterActionsToAttacker(
   attacker: BattleUnit,
   sourceSkill: SkillDefinition,
   actions: EffectAction[],
+  damageResolution: DamageResolutionState,
 ): void {
   for (const action of actions) {
     applyEffectAction(action, [attacker], {
@@ -205,6 +220,7 @@ function applyCounterActionsToAttacker(
         source: "counter",
       },
       usedReelSlot: null,
+      damageResolution,
     });
   }
 }
@@ -214,6 +230,7 @@ function applyCounterActionsToSelf(
   counterUnit: BattleUnit,
   sourceSkill: SkillDefinition,
   actions: EffectAction[],
+  damageResolution: DamageResolutionState,
 ): void {
   for (const action of actions) {
     applyEffectAction(action, [counterUnit], {
@@ -225,6 +242,7 @@ function applyCounterActionsToSelf(
         source: "counter",
       },
       usedReelSlot: null,
+      damageResolution,
     });
   }
 }

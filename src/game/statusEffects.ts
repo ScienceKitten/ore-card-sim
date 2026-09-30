@@ -8,6 +8,7 @@ import type {
   ChargedAttackStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
+  DamageChainStatusParams,
   FrostbiteStatusParams,
   StatusEffectCategory,
   StatusEffectId,
@@ -17,6 +18,12 @@ import { statusEffectDefinitions } from "../data/statusEffects";
 import { addSpecialGauge, updateBattleResult } from "./battleQueries";
 import type { SkillCategory, SkillDefinition } from "../types/skill";
 import type { TargetingMode } from "../types/skillExecution";
+import {
+  applyBattleDamage,
+  createDamageResolutionState,
+  finalizePendingDefeats,
+} from "./battleDamage";
+import { applyHealing } from "./healing";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -174,26 +181,126 @@ export function applyActionEndStatusEffects(
 }
 
 function applyPoisonDamage(state: BattleState, unit: BattleUnit): void {
-  if (unit.currentHp <= 0) return;
+  if (unit.currentHp <= 0) {
+    return;
+  }
 
-  const beforeHp = unit.currentHp;
-  const damage = Math.max(1, Math.floor(unit.currentHp * 0.1));
+  /**
+   * 毒の効果量。
+   *
+   * 通常種族:
+   *   現在HPの10%ダメージ
+   *
+   * アンデッド:
+   *   現在HPの10%回復
+   */
+  const amount = Math.max(1, Math.floor(unit.currentHp * 0.1));
 
-  unit.currentHp = Math.max(0, unit.currentHp - damage);
+  /**
+   * アンデッドは毒ダメージを受けず、
+   * 代わりに同じ数値だけ回復する。
+   */
+  if (unit.definition.species === "undead") {
+    applyPoisonHealing(state, unit, amount);
+
+    return;
+  }
+
+  applyPoisonDirectDamage(state, unit, amount);
+}
+function applyPoisonDirectDamage(
+  state: BattleState,
+  unit: BattleUnit,
+  damage: number,
+): void {
+  const damageResolution = createDamageResolutionState(state);
+
+  applyBattleDamage({
+    state,
+    target: unit,
+    amount: damage,
+
+    /**
+     * 毒は状態異常による直接ダメージ。
+     *
+     * 技ダメージではないため、
+     * ダメージチェーンは発動しない。
+     */
+    origin: {
+      type: "direct",
+      source: "status_effect",
+    },
+
+    damageResolution,
+
+    /**
+     * 毒ダメージでは必殺技ゲージを増加させない。
+     *
+     * 毒で戦闘不能になった場合の
+     * 撃破時ゲージも増加しない。
+     */
+    grantsSpecialGauge: false,
+
+    damageMessage: (appliedDamage) => {
+      return `${unit.definition.name} は毒で ${appliedDamage} ダメージを受けた。`;
+    },
+  });
+
+  /**
+   * 毒は単発の直接効果なので、
+   * ダメージ適用後すぐに死亡を確定する。
+   */
+  finalizePendingDefeats(state, damageResolution);
+}
+
+function applyPoisonHealing(
+  state: BattleState,
+  unit: BattleUnit,
+  amount: number,
+): void {
+  const healingResult = applyHealing({
+    state,
+
+    /**
+     * 毒による自己回復なので、
+     * 回復者と対象は同じユニットとする。
+     */
+    healer: unit,
+    target: unit,
+    amount,
+
+    /**
+     * 技ではなく状態異常による回復。
+     */
+    sourceType: "status_effect",
+  });
+
+  if (healingResult.invalidTarget) {
+    return;
+  }
+
+  /**
+   * 回復無効状態なら、毒による回復も無効。
+   */
+  if (healingResult.blocked) {
+    state.logs.unshift(
+      `${unit.definition.name} は回復無効により毒の効果でHPを回復できなかった。`,
+    );
+
+    return;
+  }
+
+  if (healingResult.actualAmount <= 0) {
+    state.logs.unshift(
+      `${unit.definition.name} は毒の効果を受けたが、HPは回復しなかった。`,
+    );
+
+    return;
+  }
 
   state.logs.unshift(
-    `${unit.definition.name} は毒で ${damage} ダメージを受けた。`,
+    `${unit.definition.name} は毒の効果でHPが ${healingResult.actualAmount} 回復した。`,
   );
-
-  const targetTeam = unit.side === "ally" ? state.allyTeam : state.enemyTeam;
-
-  // 攻撃ではないが「ダメージを受けた」としてゲージを増やすならここで加算
-  addSpecialGauge(targetTeam, 1);
-
-  if (beforeHp > 0 && unit.currentHp === 0) {
-    state.logs.unshift(`${unit.definition.name} は毒で倒れた。`);
-    addSpecialGauge(targetTeam, 1);
-  }
 }
 
 function decrementStatusDurations(state: BattleState, unit: BattleUnit): void {
@@ -300,6 +407,9 @@ function cloneStatusEffectParams(
 
     case "frostbite":
       return cloneFrostbiteStatusParams(params);
+
+    case "damage_chain":
+      return cloneDamageChainStatusParams(params);
   }
 }
 
@@ -441,28 +551,6 @@ function cloneChargedAttackStatusParams(
     canMoveWhileCharge: params.canMoveWhileCharge,
     cancelDamage: params.cancelDamage,
   };
-}
-
-export function cancelChargedAttackByDamage(
-  state: BattleState,
-  unit: BattleUnit,
-  damage: number,
-): void {
-  const chargedStatus = getChargedAttackStatusEffect(unit);
-
-  if (!chargedStatus) return;
-
-  const cancelDamage = chargedStatus.params.cancelDamage ?? 0;
-
-  if (cancelDamage <= 0) return;
-
-  if (damage <= cancelDamage) return;
-
-  removeStatusEffectInstance(unit, chargedStatus);
-
-  state.logs.unshift(
-    `${unit.definition.name} のチャージ攻撃はダメージにより解除された。`,
-  );
 }
 
 /**
@@ -690,17 +778,32 @@ export function resolveFrostbiteOnReelSelection(
 
   const damage = Math.max(1, Math.floor(unit.maxHp * 0.2 * level));
 
-  unit.currentHp = Math.max(0, unit.currentHp - damage);
+  const damageResolution = createDamageResolutionState(state);
 
-  /**
-   * 凍傷効果が発動した時点で、
-   * 継続ターンに関係なく凍傷は解除する。
-   */
+  applyBattleDamage({
+    state,
+    target: unit,
+    amount: damage,
+
+    origin: {
+      type: "direct",
+      source: "status_effect",
+    },
+
+    damageResolution,
+
+    grantsSpecialGauge: false,
+
+    damageMessage: null,
+  });
+
   removeStatusEffectInstance(unit, frostbite);
 
   state.logs.unshift(
     `${unit.definition.name} は凍傷で行動に失敗し、${damage}ダメージを受けた。`,
   );
+
+  finalizePendingDefeats(state, damageResolution);
 
   return true;
 }
@@ -736,4 +839,13 @@ export function getAppliedStatusEffectCategory(
   return (
     statusEffect.category ?? getDefaultStatusEffectCategory(statusEffect.id)
   );
+}
+
+function cloneDamageChainStatusParams(
+  params: DamageChainStatusParams,
+): DamageChainStatusParams {
+  return {
+    type: "damage_chain",
+    multiplier: params.multiplier,
+  };
 }

@@ -81,4 +81,10 @@ export const statusEffectDefinitions: Record<
     category: "harmful",
     defaultDuration: 3,
   },
+  damage_chain: {
+    id: "damage_chain",
+    name: "ダメージチェーン",
+    category: "harmful",
+    defaultDuration: 2,
+  },
 };

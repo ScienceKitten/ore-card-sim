@@ -25,6 +25,7 @@ import type { BattleState, BattleUnit } from './types/battle'
 import type { BattleSetup } from './types/setup'
 import { finishActorTurn } from './game/actionLifecycle'
 import { resolveStartTurnEffects } from './game/startTurnEffect.ts'
+import { items } from "./data/items";
 
 type Screen = 'unit_select' | 'battle'
 
@@ -235,14 +236,45 @@ const activeUnitIsConfused =
   });
 
 
-function handleStartBattle(setup: BattleSetup) {
-  battleSetup.value = setup
-  battleState.value = createBattleState(setup, units)
-  highlightedRoll.value = null
-  currentScreen.value = 'battle'
+function handleStartBattle(
+  setup: BattleSetup,
+) {
+  battleSetup.value = {
+    ally: {
+      leader:
+        setup.ally.leader,
+      left:
+        setup.ally.left,
+      right:
+        setup.ally.right,
+      items: {
+        ...setup.ally.items,
+      },
+    },
+    enemy: {
+      leader:
+        setup.enemy.leader,
+      left:
+        setup.enemy.left,
+      right:
+        setup.enemy.right,
+      items: {
+        ...setup.enemy.items,
+      },
+    },
+    reelProbabilityBiasEnabled:
+      setup.reelProbabilityBiasEnabled,
+  };
 
-  console.log('戦闘開始データ:', setup)
-  console.log('戦闘状態:', battleState.value)
+  battleState.value =
+    createBattleState(
+      battleSetup.value,
+      units,
+      items,
+    );
+
+  highlightedRoll.value = null;
+  currentScreen.value = "battle";
 }
 
 function backToUnitSelect() {
@@ -352,19 +384,52 @@ function getReelSkillClass(
 function restartBattleWithSameTeams() {
   if (!battleSetup.value) return
 
-  battleState.value = createBattleState(battleSetup.value, units)
+  battleState.value = createBattleState(battleSetup.value, units, items)
   highlightedRoll.value = null
   currentScreen.value = 'battle'
 }
 
-function getSkillName(skillId: string): string {
-  return skills[skillId]?.name ?? skillId
+function getSkillName(
+  sourceId: string,
+): string {
+  const skill = skills[sourceId];
+
+  if (skill) {
+    return skill.name;
+  }
+
+  const itemPrefix = "item:";
+
+  if (
+    sourceId.startsWith(
+      itemPrefix,
+    )
+  ) {
+    const itemId =
+      sourceId.slice(
+        itemPrefix.length,
+      );
+
+    const item =
+      items.find((candidate) => {
+        return (
+          candidate.id === itemId
+        );
+      });
+
+    return (
+      item?.name ??
+      sourceId
+    );
+  }
+
+  return sourceId;
 }
 
 </script>
 
 <template>
-  <UnitSelectScreen v-if="currentScreen === 'unit_select'" :units="units" :initial-setup="battleSetup"
+  <UnitSelectScreen v-if="currentScreen === 'unit_select'" :units="units" :items="items" :initial-setup="battleSetup"
     @start-battle="handleStartBattle" />
 
   <main v-else class="min-h-screen bg-slate-950 p-6 text-white">
@@ -606,9 +671,16 @@ function getSkillName(skillId: string): string {
           <div v-if="reelDisplayUnit" class="mt-6 rounded-xl border border-slate-700 bg-slate-950 p-4">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 class="text-lg font-bold text-slate-100">
-                  現在の技リール
-                </h3>
+                <div class="flex flex-wrap items-center gap-3">
+                  <h3 class="text-lg font-bold text-slate-100">
+                    現在の技リール
+                  </h3>
+
+                  <span v-if="battleState.reelProbabilityBiasEnabled"
+                    class="rounded-full border border-cyan-700 bg-cyan-950 px-3 py-1 text-xs font-bold text-cyan-200">
+                    リール確率の偏りが反映されています。
+                  </span>
+                </div>
 
                 <p class="mt-1 text-sm text-slate-400">
                   {{ reelDisplayUnit.definition.name }} /
@@ -850,14 +922,17 @@ FILE: src/components/UnitSelectScreen.vue
 ==================================================
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
-import { attributeOrder, type Attribute, type Position, type UnitId } from '../types/common'
+import { attributeOrder, type Attribute, type ItemId, type Position, type UnitId } from '../types/common'
 import type { UnitDefinition } from '../types/unit'
 import type { BattleSetup } from '../types/setup'
+import type { ItemDefinition } from "../types/item";
+import { statusEffectDefinitions } from '../data/statusEffects';
 
 const props = defineProps<{
-  units: UnitDefinition[]
-  initialSetup?: BattleSetup | null
-}>()
+  units: UnitDefinition[];
+  items: ItemDefinition[];
+  initialSetup?: BattleSetup | null;
+}>();
 
 const emit = defineEmits<{
   startBattle: [setup: BattleSetup]
@@ -900,25 +975,106 @@ const unitAttributeTextColors: Partial<
 }
 
 function createDefaultSetup(): BattleSetup {
+  const allyLeader =
+    props.units[0]?.id ?? "";
+
+  const allyLeft =
+    props.units[1]?.id ??
+    allyLeader;
+
+  const allyRight =
+    props.units[2]?.id ??
+    allyLeader;
+
+  const enemyLeader =
+    props.units[2]?.id ??
+    allyLeader;
+
+  const enemyLeft =
+    props.units[1]?.id ??
+    allyLeader;
+
+  const enemyRight =
+    props.units[0]?.id ?? "";
+
   return {
     ally: {
-      leader: props.units[0]?.id ?? '',
-      left: props.units[1]?.id ?? props.units[0]?.id ?? '',
-      right: props.units[2]?.id ?? props.units[0]?.id ?? '',
+      leader: allyLeader,
+      left: allyLeft,
+      right: allyRight,
+      items: {
+        leader:
+          getInitialItemIdForUnit(
+            allyLeader,
+          ),
+        left:
+          getInitialItemIdForUnit(
+            allyLeft,
+          ),
+        right:
+          getInitialItemIdForUnit(
+            allyRight,
+          ),
+      },
     },
+
     enemy: {
-      leader: props.units[2]?.id ?? props.units[0]?.id ?? '',
-      left: props.units[1]?.id ?? props.units[0]?.id ?? '',
-      right: props.units[0]?.id ?? '',
+      leader: enemyLeader,
+      left: enemyLeft,
+      right: enemyRight,
+      items: {
+        leader:
+          getInitialItemIdForUnit(
+            enemyLeader,
+          ),
+        left:
+          getInitialItemIdForUnit(
+            enemyLeft,
+          ),
+        right:
+          getInitialItemIdForUnit(
+            enemyRight,
+          ),
+      },
     },
-  }
+
+    reelProbabilityBiasEnabled:
+      true,
+  };
 }
 
-function cloneSetup(setup: BattleSetup): BattleSetup {
+function cloneSetup(
+  setup: BattleSetup,
+): BattleSetup {
   return {
-    ally: { ...setup.ally },
-    enemy: { ...setup.enemy },
-  }
+    ally: {
+      leader:
+        setup.ally.leader,
+      left:
+        setup.ally.left,
+      right:
+        setup.ally.right,
+      items: {
+        ...setup.ally.items,
+      },
+    },
+
+    enemy: {
+      leader:
+        setup.enemy.leader,
+      left:
+        setup.enemy.left,
+      right:
+        setup.enemy.right,
+      items: {
+        ...setup.enemy.items,
+      },
+    },
+
+    reelProbabilityBiasEnabled:
+      setup.reelProbabilityBiasEnabled ??
+      true,
+  };
 }
 
 const selected = reactive<BattleSetup>(
@@ -943,12 +1099,38 @@ function getUnitName(unitId: UnitId): string {
 }
 
 function startBattle() {
-  if (!canStartBattle.value) return
+  if (!canStartBattle.value) {
+    return;
+  }
 
-  emit('startBattle', {
-    ally: { ...selected.ally },
-    enemy: { ...selected.enemy },
-  })
+  emit("startBattle", {
+    ally: {
+      leader:
+        selected.ally.leader,
+      left:
+        selected.ally.left,
+      right:
+        selected.ally.right,
+      items: {
+        ...selected.ally.items,
+      },
+    },
+
+    enemy: {
+      leader:
+        selected.enemy.leader,
+      left:
+        selected.enemy.left,
+      right:
+        selected.enemy.right,
+      items: {
+        ...selected.enemy.items,
+      },
+    },
+
+    reelProbabilityBiasEnabled:
+      selected.reelProbabilityBiasEnabled,
+  });
 }
 
 function getUnitAttributeTextColor(
@@ -972,6 +1154,155 @@ function getSelectedUnitTextColor(
   }
 
   return getUnitAttributeTextColor(unit)
+}
+
+function getFirstItemId(): ItemId | null {
+  return props.items[0]?.id ?? null;
+}
+
+function getInitialItemIdForUnit(
+  unitId: UnitId,
+): ItemId | null {
+  const unit =
+    props.units.find((candidate) => {
+      return candidate.id === unitId;
+    });
+
+  if (!unit) {
+    return getFirstItemId();
+  }
+
+  if (
+    unit.defaultItemId !== undefined &&
+    props.items.some((item) => {
+      return (
+        item.id ===
+        unit.defaultItemId
+      );
+    })
+  ) {
+    return unit.defaultItemId;
+  }
+
+  return getFirstItemId();
+}
+
+function applyDefaultItemForSelectedUnit(
+  side: "ally" | "enemy",
+  position: Position,
+): void {
+  const unitId =
+    selected[side][position];
+
+  const unit =
+    props.units.find((candidate) => {
+      return candidate.id === unitId;
+    });
+
+  /**
+   * defaultItemIdが未定義なら、
+   * 現在のアイテム選択を変更しない。
+   */
+  if (
+    !unit ||
+    unit.defaultItemId === undefined
+  ) {
+    return;
+  }
+
+  const itemExists =
+    props.items.some((item) => {
+      return (
+        item.id ===
+        unit.defaultItemId
+      );
+    });
+
+  selected[side].items[position] =
+    itemExists
+      ? unit.defaultItemId
+      : null;
+}
+
+function getItemById(
+  itemId: ItemId | null,
+): ItemDefinition | null {
+  if (itemId === null) {
+    return null;
+  }
+
+  return (
+    props.items.find((item) => {
+      return item.id === itemId;
+    }) ?? null
+  );
+}
+
+function formatSignedNumber(
+  value: number,
+): string {
+  return value >= 0
+    ? `+${value}`
+    : `${value}`;
+}
+
+function getItemStatDescription(
+  item: ItemDefinition,
+): string {
+  const descriptions: string[] = [];
+
+  const maxHp =
+    item.statBonus.maxHp ?? 0;
+
+  const attack =
+    item.statBonus.attack ?? 0;
+
+  const speed =
+    item.statBonus.speed ?? 0;
+
+  if (maxHp !== 0) {
+    descriptions.push(
+      `HP${formatSignedNumber(maxHp)}`,
+    );
+  }
+
+  if (attack !== 0) {
+    descriptions.push(
+      `攻撃${formatSignedNumber(attack)}`,
+    );
+  }
+
+  if (speed !== 0) {
+    descriptions.push(
+      `素早さ${formatSignedNumber(speed)}`,
+    );
+  }
+
+  return descriptions.join("、");
+}
+
+function getItemStatusDescription(
+  item: ItemDefinition,
+): string {
+  if (
+    item.startStatusEffects.length === 0
+  ) {
+    return "";
+  }
+
+  const statusNames =
+    item.startStatusEffects.map(
+      (statusEffect) => {
+        return (
+          statusEffectDefinitions[
+            statusEffect.statusEffectId
+          ]?.name ??
+          statusEffect.statusEffectId
+        );
+      },
+    );
+
+  return `ゲーム開始時に${statusNames.join("、")}を付与`;
 }
 
 
@@ -1003,6 +1334,7 @@ function getSelectedUnitTextColor(
               </label>
 
               <select v-model="selected.ally[position.key]"
+                @change="applyDefaultItemForSelectedUnit('ally', position.key)"
                 class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2" :style="{
                   color: getSelectedUnitTextColor(
                     selected.ally[position.key],
@@ -1019,6 +1351,54 @@ function getSelectedUnitTextColor(
               <p class="mt-2 text-sm text-slate-400">
                 選択中: {{ getUnitName(selected.ally[position.key]) }}
               </p>
+              <label class="mb-2 mt-4 block font-bold text-slate-200">
+                所持アイテム
+              </label>
+
+              <select v-model="selected.ally.items[position.key]"
+                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                <option :value="null">
+                  アイテムなし
+                </option>
+
+                <option v-for="item in items" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+
+              <div v-if="getItemById(selected.ally.items[position.key])" class="mt-2 space-y-1 text-xs text-slate-400">
+                <p v-if="
+                  getItemStatDescription(
+                    getItemById(
+                      selected.ally.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatDescription(
+                      getItemById(
+                        selected.ally.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+
+                <p v-if="
+                  getItemStatusDescription(
+                    getItemById(
+                      selected.ally.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatusDescription(
+                      getItemById(
+                        selected.ally.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -1036,6 +1416,7 @@ function getSelectedUnitTextColor(
               </label>
 
               <select v-model="selected.enemy[position.key]"
+                @change="applyDefaultItemForSelectedUnit('enemy', position.key)"
                 class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2" :style="{
                   color: getSelectedUnitTextColor(
                     selected.enemy[position.key],
@@ -1052,6 +1433,54 @@ function getSelectedUnitTextColor(
               <p class="mt-2 text-sm text-slate-400">
                 選択中: {{ getUnitName(selected.enemy[position.key]) }}
               </p>
+              <label class="mb-2 mt-4 block font-bold text-slate-200">
+                所持アイテム
+              </label>
+
+              <select v-model="selected.enemy.items[position.key]"
+                class="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-white">
+                <option :value="null">
+                  アイテムなし
+                </option>
+
+                <option v-for="item in items" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+
+              <div v-if="getItemById(selected.enemy.items[position.key])" class="mt-2 space-y-1 text-xs text-slate-400">
+                <p v-if="
+                  getItemStatDescription(
+                    getItemById(
+                      selected.enemy.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatDescription(
+                      getItemById(
+                        selected.enemy.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+
+                <p v-if="
+                  getItemStatusDescription(
+                    getItemById(
+                      selected.enemy.items[position.key],
+                    )!,
+                  )
+                ">
+                  {{
+                    getItemStatusDescription(
+                      getItemById(
+                        selected.enemy.items[position.key],
+                      )!,
+                    )
+                  }}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -1086,6 +1515,31 @@ function getSelectedUnitTextColor(
           </div>
         </div>
 
+        <div class="mt-6 flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
+          <div class="text-left">
+            <p class="font-bold text-slate-100">
+              リール確率の偏りを反映する
+            </p>
+
+            <p class="mt-1 text-sm text-slate-400">
+              前半3枠の合計確率を36%、後半3枠の合計確率を64%にします。
+            </p>
+          </div>
+
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input v-model="selected.reelProbabilityBiasEnabled" type="checkbox" class="peer sr-only">
+
+            <span class="h-7 w-12 rounded-full bg-slate-600 transition-colors
+             after:absolute after:left-1 after:top-1 after:h-5 after:w-5
+             after:rounded-full after:bg-white after:transition-transform
+             peer-checked:bg-blue-600
+             peer-checked:after:translate-x-5
+             peer-focus-visible:ring-2
+             peer-focus-visible:ring-blue-400
+             peer-focus-visible:ring-offset-2
+             peer-focus-visible:ring-offset-slate-950" />
+          </label>
+        </div>
         <button
           class="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-600"
           :disabled="!canStartBattle" @click="startBattle">
@@ -1159,6 +1613,67 @@ export const attributeChart: Record<Attribute, Partial<Record<Attribute, number>
 
   none: {},
 }
+
+==================================================
+FILE: src/data/items.ts
+==================================================
+import type { ItemDefinition } from "../types/item";
+
+export const items: ItemDefinition[] = [
+  {
+    id: "knight_shield",
+    name: "騎士の盾",
+    statBonus: {
+      maxHp: 30,
+    },
+    startStatusEffects: [],
+  },
+  {
+    id: "knight_sword",
+    name: "騎士の剣",
+    statBonus: {
+      attack: 4,
+    },
+    startStatusEffects: [],
+  },
+  {
+    id: "speed_shoes",
+    name: "スピードシューズ",
+    statBonus: {
+      speed: 4,
+    },
+    startStatusEffects: [],
+  },
+  {
+    id: "heavy_sword",
+    name: "オモタソード",
+    statBonus: {
+      attack: 6,
+      speed: -20,
+    },
+    startStatusEffects: [],
+  },
+  {
+    id: "heavy_metal_boots",
+    name: "ヘヴィメタルブーツ",
+    statBonus: {
+      speed: -10,
+    },
+    startStatusEffects: [],
+  },
+
+  {
+    id: "poison_orb",
+    name: "毒のオーブ",
+    statBonus: {},
+    startStatusEffects: [
+      {
+        statusEffectId: "poison",
+      },
+    ],
+  },
+];
+
 
 ==================================================
 FILE: src/data/skills.ts
@@ -1473,6 +1988,28 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  dragon_tail: {
+    id: "dragon_tail",
+    name: "竜のしっぽ",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.9,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.2,
+          },
+        ],
+      },
+    ],
+  },
   thunder: {
     id: "thunder",
     name: "サンダー",
@@ -1599,7 +2136,50 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
-
+  dark: {
+    id: "dark",
+    name: "ダーク",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.42,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.15,
+          },
+        ],
+      },
+    ],
+  },
+  dark_power1: {
+    id: "dark_power1",
+    name: "ダーク!",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.945,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.3,
+          },
+        ],
+      },
+    ],
+  },
   heal: {
     id: "heal",
     name: "ヒール",
@@ -1728,7 +2308,23 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
-
+  attack_demon_king: {
+    id: "attack_demon_king",
+    name: "魔王の一撃",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.26,
+          },
+        ],
+      },
+    ],
+  },
   attack_evil_emperor: {
     id: "attack_evil_emperor",
     name: "邪帝の一撃",
@@ -2139,6 +2735,28 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  anko_shot: {
+    id: "anko_shot",
+    name: "あんこ弾",
+    attributes: ["wind"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.4,
+          },
+        ],
+      },
+    ],
+  },
   double_edged_sword: {
     id: "double_edged_sword",
     name: "諸刃の剣",
@@ -2175,7 +2793,7 @@ export const skills: Record<string, SkillDefinition> = {
     effects: [
       {
         target: {
-          type: "random_allies",
+          type: "random_all_units",
           count: 5,
           allowDuplicate: true,
         },
@@ -2691,6 +3309,207 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  dark_breath: {
+    id: "dark_breath",
+    name: "闇のいき",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.365,
+          },
+        ],
+      },
+    ],
+  },
+  demise_breath: {
+    id: "demise_breath",
+    name: "終焉のいき",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.15,
+          },
+        ],
+      },
+    ],
+  },
+  ragnarok_sequentia: {
+    id: "ragnarok_sequentia",
+    name: "ラグナロク・セクエンツィア",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.89,
+          },
+        ],
+      },
+    ],
+  },
+  white_breath: {
+    id: "white_breath",
+    name: "ホワイトブレス",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.284,
+          },
+        ],
+      },
+    ],
+  },
+  holy_breath: {
+    id: "holy_breath",
+    name: "ホーリーブレス",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["undead"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 2.0865,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 1.391,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  senrinbou: {
+    id: "senrinbou",
+    name: "千隣亡",
+    attributes: ["poison"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.2,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.1,
+          },
+        ],
+      },
+    ],
+  },
+  wakugouku: {
+    id: "wakugouku",
+    name: "惑業苦",
+    attributes: ["earth"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.5,
+          },
+        ],
+      },
+    ],
+  },
+  grand_parade: {
+    id: "grand_parade",
+    name: "大行侵",
+    attributes: ["earth"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+            chance: 0.1,
+          },
+        ],
+      },
+    ],
+  },
+  death_roulette_II: {
+    id: "death_roulette_II",
+    name: "デスルーレットII",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "random_all_units",
+          count: 2,
+          allowDuplicate: true,
+          includeSelf: true,
+        },
+        actions: [
+          {
+            type: "conditional_action",
+            conditions: {
+              species: ["undead"],
+            },
+            matchedActions: [
+              {
+                type: "do_nothing",
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 100000,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 };
 
 
@@ -2813,12 +3632,27 @@ export const speciesTeamBonuses: Partial<Record<Species, StatBonus>> = {
     maxHp: 10,
   },
 
+  machine: {
+    maxHp: 10,
+  },
+
   knight: {
     attack: 4,
   },
 
   slime: {
     maxHp: 5,
+  },
+
+  angel: {
+    attack: 4,
+  },
+  demon: {
+    attack: 4,
+  },
+
+  undead: {
+    maxHp: 10,
   },
 };
 
@@ -2928,6 +3762,7 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "dragon_god_wind",
+    defaultItemId: "knight_sword",
   },
 
   {
@@ -2950,6 +3785,7 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "dragon_rage",
+    defaultItemId: "speed_shoes",
   },
   {
     id: "twenbee",
@@ -2971,10 +3807,11 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "big_fire_attack",
+    defaultItemId: "speed_shoes",
   },
   {
     id: "prototype_twenbee_allrange",
-    name: "プロトタイプ・ツインビー（全画面）",
+    name: "プロトタイプ Twin-Bee（全画面）",
     maxHp: 294,
     attack: 59,
     speed: 88,
@@ -3002,10 +3839,11 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "big_star_attack",
+    defaultItemId: "speed_shoes",
   },
   {
     id: "prototype_twenbee_three_way",
-    name: "プロトタイプ・ツインビー（3way）",
+    name: "プロトタイプ Twin-Bee（3way）",
     maxHp: 294,
     attack: 59,
     speed: 88,
@@ -3033,6 +3871,7 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "big_star_attack",
+    defaultItemId: "speed_shoes",
   },
   {
     id: "trit_wave_knight",
@@ -3133,6 +3972,21 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "dragon_god_wind",
+    defaultItemId: "speed_shoes",
+  },
+  {
+    id: "forst_kurumi",
+    name: "森の子クルミ",
+    maxHp: 94,
+    attack: 21,
+    speed: 42,
+    species: "plant",
+    attribute: "wind",
+    gender: "none",
+    reels: [
+      ["miss", "attack", "anko_shot", "anko_shot", "anko_shot", "anko_shot"],
+    ],
+    specialSkillId: "miss",
   },
   {
     id: "scarlet_dragon",
@@ -3184,7 +4038,14 @@ export const units: UnitDefinition[] = [
         "double_edged_sword",
         "double_edged_sword",
       ],
-      ["miss", "attack_critical", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "miss",
+        "attack_critical",
+        "double_edged_sword",
+        "double_edged_sword",
+        "double_edged_sword",
+        "double_edged_sword",
+      ],
       [
         "attack_power1",
         "double_edged_sword",
@@ -3557,6 +4418,198 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "divine_punishment_azure_fang_dragon_sword",
+  },
+  {
+    id: "fefnir",
+    name: "漆黒竜ファヴニール",
+    maxHp: 414,
+    attack: 89,
+    speed: 26,
+    species: "dragon",
+    attribute: "earth",
+    gender: "none",
+    reels: [
+      ["miss", "dragon_tail", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "dark_breath", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "demise_breath", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "miss",
+        "demise_breath",
+        "demise_breath",
+        "demise_breath",
+        "demise_breath",
+        "demise_breath",
+      ],
+    ],
+    specialSkillId: "ragnarok_sequentia",
+  },
+  {
+    id: "cursed_frog",
+    name: "ジュバクガエル",
+    maxHp: 203,
+    attack: 46,
+    speed: 4,
+    species: "aquatic",
+    attribute: "wind",
+    gender: "none",
+    reels: [
+      [
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+      ],
+    ],
+    specialSkillId: "attack_power1",
+    specialGaugeConsumption: 2,
+  },
+  {
+    id: "guri",
+    name: "グリ",
+    maxHp: 69,
+    attack: 46,
+    speed: 57,
+    species: "undead",
+    attribute: "wind",
+    gender: "none",
+    reels: [
+      [
+        "miss",
+        "dark_power1",
+        "dark_power1",
+        "dark_power1",
+        "dark_power1",
+        "dark_power1",
+      ],
+    ],
+    specialSkillId: "death_roulette_II",
+    specialGaugeConsumption: 4,
+  },
+  {
+    id: "white_dragon",
+    name: "ホワイトドラゴン",
+    maxHp: 378,
+    attack: 78,
+    speed: 68,
+    species: "dragon",
+    attribute: "water",
+    gender: "none",
+    reels: [
+      ["attack_power1", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "white_breath",
+        "white_breath",
+        "white_breath",
+        "white_breath",
+        "reel_up",
+        "reel_up",
+      ],
+      [
+        "holy_breath",
+        "holy_breath",
+        "holy_breath",
+        "holy_breath",
+        "holy_breath",
+        "holy_breath",
+      ],
+    ],
+    specialSkillId: "holy_breath",
+  },
+  {
+    id: "auslese_demon_king",
+    name: "魔皇アウスレーゼ",
+    maxHp: 462,
+    attack: 82,
+    speed: 32,
+    species: "undead",
+    attribute: "earth",
+    gender: "female",
+    reels: [
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "attack", "senrinbou", "senrinbou", "senrinbou", "senrinbou"],
+      ["miss", "wakugouku", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "wakugouku",
+        "senrinbou",
+        "senrinbou",
+        "senrinbou",
+        "senrinbou",
+        "senrinbou",
+      ],
+    ],
+    specialSkillId: "senrinbou",
+  },
+  {
+    id: "Leonard_demon_king_demon",
+    name: "魔王レオナーレ（魔王の一撃）",
+    maxHp: 342,
+    attack: 88,
+    speed: 77,
+    species: "demon",
+    attribute: "wind",
+    gender: "male",
+    reels: [
+      ["miss", "reel_up", "reel_up", "reel_up", "reel_up", "attack_demon_king"],
+      ["miss", "reel_up", "reel_up", "reel_up", "reel_up", "attack_demon_king"],
+      [
+        "miss",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "attack_demon_king",
+        "attack_demon_king",
+      ],
+      [
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+      ],
+    ],
+    specialSkillId: "attack_demon_king",
+  },
+  {
+    id: "Leonard_demon_king_grand_parade",
+    name: "魔王レオナーレ（大行侵）",
+    maxHp: 342,
+    attack: 88,
+    speed: 77,
+    species: "demon",
+    attribute: "wind",
+    gender: "male",
+    reels: [
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "miss",
+        "miss",
+        "grand_parade",
+        "grand_parade",
+        "grand_parade",
+        "grand_parade",
+      ],
+      [
+        "miss",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "attack_demon_king",
+        "attack_demon_king",
+      ],
+      [
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+        "attack_demon_king",
+      ],
+    ],
+    specialSkillId: "attack_demon_king",
   },
   {
     id: "test_unit",
@@ -4055,6 +5108,10 @@ function applyCounterActionsToAttacker(
       state,
       actor: counterUnit,
       skill: sourceSkill,
+      origin: {
+        type: "direct",
+        source: "counter",
+      },
       usedReelSlot: null,
     });
   }
@@ -4071,6 +5128,10 @@ function applyCounterActionsToSelf(
       state,
       actor: counterUnit,
       skill: sourceSkill,
+      origin: {
+        type: "direct",
+        source: "counter",
+      },
       usedReelSlot: null,
     });
   }
@@ -4171,7 +5232,7 @@ function satisfiesRequireDamage(
 ==================================================
 FILE: src/game/createBattleState.ts
 ==================================================
-import type { Position, TeamSide, UnitId } from "../types/common";
+import type { ItemId, Position, TeamSide, UnitId } from "../types/common";
 import type { UnitDefinition } from "../types/unit";
 import type { BattleSetup, TeamSelection } from "../types/setup";
 import type { BattleState, BattleTeam, BattleUnit } from "../types/battle";
@@ -4183,6 +5244,9 @@ import {
   sumStatBonuses,
 } from "./teamBonus";
 import { resolveUnableToActActiveUnits } from "./actionLifecycle";
+import type { ItemDefinition } from "../types/item";
+import { addStatusEffect } from "./statusEffects";
+import { rollChance } from "../utils/random";
 
 const positions: Position[] = ["leader", "left", "right"];
 
@@ -4208,16 +5272,29 @@ function createBattleUnit(
   side: TeamSide,
   position: Position,
   teamBonus: Required<StatBonus>,
+  item: ItemDefinition | null,
 ): BattleUnit {
-  const maxHp = Math.max(1, unitDefinition.maxHp + teamBonus.maxHp);
-  const attack = Math.max(0, unitDefinition.attack + teamBonus.attack);
-  const speed = Math.max(0, unitDefinition.speed + teamBonus.speed);
+  const itemMaxHp = item?.statBonus.maxHp ?? 0;
+
+  const itemAttack = item?.statBonus.attack ?? 0;
+
+  const itemSpeed = item?.statBonus.speed ?? 0;
+
+  const maxHp = Math.max(1, unitDefinition.maxHp + teamBonus.maxHp + itemMaxHp);
+
+  const attack = Math.max(
+    0,
+    unitDefinition.attack + teamBonus.attack + itemAttack,
+  );
+
+  const speed = Math.max(0, unitDefinition.speed + teamBonus.speed + itemSpeed);
 
   return {
     instanceId: `${side}-${position}-${unitDefinition.id}`,
     definition: unitDefinition,
     side,
     position,
+    itemId: item?.id ?? null,
 
     maxHp,
     attack,
@@ -4234,6 +5311,7 @@ function createBattleTeam(
   side: TeamSide,
   selection: TeamSelection,
   units: UnitDefinition[],
+  items: ItemDefinition[],
 ): BattleTeam {
   const selectedUnitDefinitions = positions.map((position) => {
     const unitId = selection[position];
@@ -4246,7 +5324,11 @@ function createBattleTeam(
   const battleUnits = positions.map((position, index) => {
     const unitDefinition = selectedUnitDefinitions[index];
 
-    return createBattleUnit(unitDefinition, side, position, totalBonus);
+    const itemId = selection.items[position];
+
+    const item = findItemDefinition(items, itemId);
+
+    return createBattleUnit(unitDefinition, side, position, totalBonus, item);
   });
 
   return {
@@ -4272,9 +5354,11 @@ function createTeamBonusLogs(team: BattleTeam): string[] {
 export function createBattleState(
   setup: BattleSetup,
   units: UnitDefinition[],
+  items: ItemDefinition[],
 ): BattleState {
-  const allyTeam = createBattleTeam("ally", setup.ally, units);
-  const enemyTeam = createBattleTeam("enemy", setup.enemy, units);
+  const allyTeam = createBattleTeam("ally", setup.ally, units, items);
+
+  const enemyTeam = createBattleTeam("enemy", setup.enemy, units, items);
 
   const state: BattleState = {
     allyTeam,
@@ -4285,6 +5369,7 @@ export function createBattleState(
     pendingTargetSelection: null,
     lastRolledReelSlot: null,
     extraActionQueue: [],
+    reelProbabilityBiasEnabled: setup.reelProbabilityBiasEnabled ?? true,
     logs: [
       ...createTeamBonusLogs(enemyTeam),
       ...createTeamBonusLogs(allyTeam),
@@ -4296,12 +5381,78 @@ export function createBattleState(
     },
   };
 
+  /**
+   * 行動者決定前に開始時状態異常を付与する。
+   */
+  applyInitialItemStatusEffects(state, items);
+
   const firstActor = findNextActor(state);
+
   state.activeUnitInstanceId = firstActor?.instanceId ?? null;
 
   resolveUnableToActActiveUnits(state);
 
   return state;
+}
+
+function findItemDefinition(
+  items: ItemDefinition[],
+  itemId: ItemId | null,
+): ItemDefinition | null {
+  if (itemId === null) {
+    return null;
+  }
+
+  return (
+    items.find((item) => {
+      return item.id === itemId;
+    }) ?? null
+  );
+}
+
+function applyInitialItemStatusEffects(
+  state: BattleState,
+  items: ItemDefinition[],
+): void {
+  const allUnits = [...state.allyTeam.units, ...state.enemyTeam.units];
+
+  for (const unit of allUnits) {
+    if (unit.itemId === null) {
+      continue;
+    }
+
+    const item = findItemDefinition(items, unit.itemId);
+
+    if (!item) {
+      continue;
+    }
+
+    for (const statusEffect of item.startStatusEffects) {
+      if (!rollChance(statusEffect.chance ?? 1)) {
+        state.logs.unshift(
+          `${unit.definition.name} は「${item.name}」の開始時効果を受けなかった。`,
+        );
+
+        continue;
+      }
+
+      addStatusEffect({
+        target: unit,
+        statusEffectId: statusEffect.statusEffectId,
+        duration: statusEffect.duration,
+        category: statusEffect.category,
+        params: statusEffect.params,
+        sourceUnitInstanceId: unit.instanceId,
+
+        /**
+         * アイテム由来状態異常用の疑似技ID。
+         */
+        sourceSkillId: `item:${item.id}`,
+
+        state,
+      });
+    }
+  }
 }
 
 
@@ -4316,6 +5467,7 @@ import {
   attributeChart,
 } from "../data/attributeChart";
 import { randomVariance } from "../utils/random";
+import type { EffectOrigin } from "../types/effectExecution";
 
 const DAMAGE_MIN = 1;
 const DAMAGE_MAX = 999;
@@ -4325,6 +5477,7 @@ export interface DamageCalculationInput {
   defender: BattleUnit;
   skill: SkillDefinition;
   action: DamageAction;
+  origin: EffectOrigin;
 }
 
 export interface DamageCalculationResult {
@@ -4337,6 +5490,10 @@ export interface DamageCalculationResult {
   finalMultiplier: number;
   skillAttributes: Attribute[];
   defenderAttribute: Attribute;
+  /**
+   * アンデッドに対する技カテゴリ補正。
+   */
+  undeadCategoryMultiplier: number;
 }
 
 /**
@@ -4382,7 +5539,9 @@ export function calculateDamage(
   input: DamageCalculationInput,
 ): DamageCalculationResult {
   const variance = input.action.variance ?? 0.05;
+
   const multiplier = input.action.multiplier;
+
   const attackValue = input.attacker.attack;
 
   const attributeMultiplier = calculateAttributeMultiplier(
@@ -4390,12 +5549,21 @@ export function calculateDamage(
     input.defender.definition.attribute,
   );
 
-  const finalMultiplier = multiplier * attributeMultiplier;
+  const undeadCategoryMultiplier = calculateUndeadSkillCategoryMultiplier(
+    input.defender,
+    input.skill,
+    input.origin,
+  );
+
+  const finalMultiplier =
+    multiplier * attributeMultiplier * undeadCategoryMultiplier;
 
   const baseDamage = attackValue * finalMultiplier;
+
   const variedDamage = randomVariance(baseDamage, variance);
 
   const rawDamage = Math.round(variedDamage);
+
   const damage = Math.min(DAMAGE_MAX, Math.max(DAMAGE_MIN, rawDamage));
 
   return {
@@ -4405,6 +5573,7 @@ export function calculateDamage(
     multiplier,
     variance,
     attributeMultiplier,
+    undeadCategoryMultiplier,
     finalMultiplier,
     skillAttributes: input.skill.attributes,
     defenderAttribute: input.defender.definition.attribute,
@@ -4423,6 +5592,40 @@ export function getAttributeEffectivenessText(
   }
 
   return "";
+}
+
+/**
+ * 技によるアンデッド対象へのカテゴリ補正を返す。
+ *
+ * 技を介さない直接効果には適用しない。
+ */
+export function calculateUndeadSkillCategoryMultiplier(
+  defender: BattleUnit,
+  skill: SkillDefinition,
+  origin: EffectOrigin,
+): number {
+  /**
+   * カウンターやターン終了時効果など、
+   * 技を介さない実行効果には適用しない。
+   */
+  if (origin.type !== "skill") {
+    return 1;
+  }
+
+  if (defender.definition.species !== "undead") {
+    return 1;
+  }
+
+  switch (skill.category) {
+    case "physical":
+      return 0.8;
+
+    case "magic":
+      return 1.2;
+
+    default:
+      return 1;
+  }
 }
 
 
@@ -4447,10 +5650,25 @@ import {
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
 import { applyHealing } from "./healing";
+import type { EffectOrigin } from "../types/effectExecution";
+
 interface EffectContext {
   state: BattleState;
   actor: BattleUnit;
+
+  /**
+   * 属性・カテゴリ・技名などの参照用。
+   *
+   * direct効果でも、計算の基準として技情報を
+   * 持つ場合がある。
+   */
   skill: SkillDefinition;
+
+  /**
+   * 技による実行か、技を介さない直接実行か。
+   */
+  origin: EffectOrigin;
+
   usedReelSlot: UsedReelSlot | null;
 }
 
@@ -4532,6 +5750,7 @@ export function applyEffectAction(
       applyStatusEffect(
         action.statusEffectId,
         action.duration,
+        action.category,
         action.params,
         action.chance ?? 1,
         targets,
@@ -4571,6 +5790,10 @@ export function applyEffectAction(
         "ランダム効果を直接実行することはできません。",
       );
       return;
+
+    case "conditional_action":
+      context.state.logs.unshift("分岐効果を直接実行することはできません。");
+      return;
   }
 }
 
@@ -4589,6 +5812,7 @@ function applyDamage(
       defender: target,
       skill: context.skill,
       action,
+      origin: context.origin,
     });
 
     const beforeHp = target.currentHp;
@@ -4818,18 +6042,22 @@ function applyReplaceUsedSkill(
 function applyStatusEffect(
   statusEffectId: StatusEffectId,
   duration: number | undefined,
+  category: StatusEffectCategory | undefined,
   params: StatusEffectParams | undefined,
   chance: number,
   targets: BattleUnit[],
   context: EffectContext,
 ): void {
   for (const target of targets) {
-    if (target.currentHp <= 0) continue;
+    if (target.currentHp <= 0) {
+      continue;
+    }
 
     if (!rollChance(chance)) {
       context.state.logs.unshift(
         `${target.definition.name} には${getStatusEffectName(statusEffectId)}が効かなかった。`,
       );
+
       continue;
     }
 
@@ -4837,6 +6065,7 @@ function applyStatusEffect(
       target,
       statusEffectId,
       duration,
+      category,
       params,
       sourceUnitInstanceId: context.actor.instanceId,
       sourceSkillId: context.skill.id,
@@ -4983,6 +6212,8 @@ import type {
 } from "../types/skillExecution";
 
 import type {
+  ConditionalAction,
+  ConditionalActionConditions,
   EffectAction,
   RandomAction,
   SkillDefinition,
@@ -5008,6 +6239,7 @@ import {
   canActByStatus,
   getCannotActMessage,
   getSkillSealMessage,
+  hasStatusEffect,
   isConfused,
   isSkillSealedByStatus,
   resolveFrostbiteOnReelSelection,
@@ -5092,7 +6324,13 @@ export function executeRandomReelSkill(
     return;
   }
 
-  const slotIndex = Math.floor(Math.random() * reel.length);
+  /**
+   * 混乱中はスイッチがオンでも偏りを適用しない。
+   */
+  const useProbabilityBias =
+    state.reelProbabilityBiasEnabled && !actorIsConfused;
+
+  const slotIndex = selectReelSlotIndex(reel.length, useProbabilityBias);
   const skillId = reel[slotIndex];
 
   const usedReelSlot: UsedReelSlot = {
@@ -5554,10 +6792,6 @@ function applySkillAction(
   executionInfo: SkillExecutionInfo,
   isTargetless: boolean,
 ): void {
-  /**
-   * 複数候補からランダムで1つ選ぶ効果は、
-   * 先に候補を展開してから通常の実行効果処理へ戻す。
-   */
   if (action.type === "random_action") {
     applyRandomAction(
       state,
@@ -5575,28 +6809,40 @@ function applySkillAction(
   }
 
   /**
-   * 対象なし効果は、カウンターの記録・無効化判定を通さない。
+   * 条件分岐を対象ごとに展開する。
    */
+  if (action.type === "conditional_action") {
+    applyConditionalAction(
+      state,
+      actor,
+      skill,
+      action,
+      targets,
+      usedReelSlot,
+      counterEvents,
+      executionInfo,
+      isTargetless,
+    );
+
+    return;
+  }
+
   if (isTargetless) {
     applyEffectAction(action, [], {
       state,
       actor,
       skill,
+      origin: {
+        type: "skill",
+      },
       usedReelSlot,
     });
 
     return;
   }
 
-  /**
-   * 選ばれた実行効果がdamageまたはdrainなら、
-   * その対象を「この技のダメージ対象」として記録する。
-   */
   recordDamageTargetsForAction(action, targets, executionInfo);
 
-  /**
-   * 選ばれた実行効果に応じてカウンター候補を記録する。
-   */
   recordCounterEventsForAction(
     state,
     actor,
@@ -5607,9 +6853,6 @@ function applySkillAction(
     executionInfo,
   );
 
-  /**
-   * 対象ごとのカウンター無効化判定。
-   */
   const { appliedTargets, nullifiedTargets } = splitTargetsByCounterNullify(
     actor,
     skill,
@@ -5629,6 +6872,9 @@ function applySkillAction(
     state,
     actor,
     skill,
+    origin: {
+      type: "skill",
+    },
     usedReelSlot,
   });
 }
@@ -5743,6 +6989,171 @@ function applyRandomAction(
       executionInfo,
       false,
     );
+  }
+}
+
+/**
+ * 技リールから使用する枠を選ぶ。
+ *
+ * 偏りあり、かつ6枠リールの場合:
+ *   0～2番目のグループ: 合計36%
+ *   3～5番目のグループ: 合計64%
+ *
+ * グループ内は均等確率。
+ *
+ * 混乱中は呼び出し側からuseProbabilityBias=falseが渡され、
+ * 通常の均等抽選になる。
+ */
+function selectReelSlotIndex(
+  reelLength: number,
+  useProbabilityBias: boolean,
+): number {
+  if (reelLength <= 0) {
+    throw new Error("空の技リールから技を選択することはできません。");
+  }
+
+  /**
+   * 現在のゲームデータではリールは6枠。
+   * 6枠でない場合は安全のため均等抽選へ戻す。
+   */
+  if (!useProbabilityBias || reelLength !== 6) {
+    return Math.floor(Math.random() * reelLength);
+  }
+
+  /**
+   * 前半グループを36%、後半グループを64%で選ぶ。
+   */
+  const selectFirstHalf = Math.random() < 0.36;
+
+  if (selectFirstHalf) {
+    /**
+     * 0、1、2から均等に選ぶ。
+     * 各枠は12%。
+     */
+    return Math.floor(Math.random() * 3);
+  }
+
+  /**
+   * 3、4、5から均等に選ぶ。
+   * 各枠は約21.33%。
+   */
+  return 3 + Math.floor(Math.random() * 3);
+}
+
+function hasConditionValues<T>(values: T[] | undefined): values is T[] {
+  return Array.isArray(values) && values.length > 0;
+}
+
+function matchesConditionalActionConditions(
+  target: BattleUnit,
+  conditions: ConditionalActionConditions,
+): boolean {
+  if (
+    hasConditionValues(conditions.genders) &&
+    !conditions.genders.includes(target.definition.gender)
+  ) {
+    return false;
+  }
+
+  if (
+    hasConditionValues(conditions.attributes) &&
+    !conditions.attributes.includes(target.definition.attribute)
+  ) {
+    return false;
+  }
+
+  if (
+    hasConditionValues(conditions.species) &&
+    !conditions.species.includes(target.definition.species)
+  ) {
+    return false;
+  }
+
+  if (
+    hasConditionValues(conditions.statusEffectIds) &&
+    !conditions.statusEffectIds.some((statusEffectId) => {
+      return hasStatusEffect(target, statusEffectId);
+    })
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function applyConditionalAction(
+  state: BattleState,
+  actor: BattleUnit,
+  skill: SkillDefinition,
+  action: ConditionalAction,
+  targets: BattleUnit[],
+  usedReelSlot: UsedReelSlot | null,
+  counterEvents: CounterEvent[],
+  executionInfo: SkillExecutionInfo,
+  isTargetless: boolean,
+): void {
+  /**
+   * conditional_action自体のchanceは
+   * 対象ごとの判定より前に1回だけ判定する。
+   */
+  if (!rollChance(action.chance ?? 1)) {
+    state.logs.unshift("しかし、分岐効果は発生しなかった。");
+
+    return;
+  }
+
+  /**
+   * 対象なしエフェクトでは、
+   * 判定対象となるユニットが存在しない。
+   *
+   * 現在の仕様では使用者を判定対象にせず、
+   * 条件不一致としてunmatchedActionsを実行する。
+   */
+  if (isTargetless) {
+    for (const selectedAction of action.unmatchedActions) {
+      applySkillAction(
+        state,
+        actor,
+        skill,
+        selectedAction,
+        [],
+        usedReelSlot,
+        counterEvents,
+        executionInfo,
+        true,
+      );
+    }
+
+    return;
+  }
+
+  /**
+   * 対象ごとに条件を判定し、
+   * 一致・不一致の分岐を個別に実行する。
+   */
+  for (const target of targets) {
+    const matched = matchesConditionalActionConditions(
+      target,
+      action.conditions,
+    );
+
+    const selectedActions = matched
+      ? action.matchedActions
+      : action.unmatchedActions;
+
+    for (const selectedAction of selectedActions) {
+      applySkillAction(
+        state,
+        actor,
+        skill,
+        selectedAction,
+        [target],
+        usedReelSlot,
+        counterEvents,
+        executionInfo,
+        false,
+      );
+    }
   }
 }
 
@@ -6102,6 +7513,14 @@ export interface AddStatusEffectInput {
   target: BattleUnit;
   statusEffectId: StatusEffectId;
   duration?: number;
+
+  /**
+   * この付与で適用する状態異常分類。
+   *
+   * 未指定の場合は定義側の分類を使う。
+   */
+  category?: StatusEffectCategory;
+
   params?: StatusEffectParams;
   sourceUnitInstanceId: string;
   sourceSkillId: SkillId;
@@ -6112,16 +7531,12 @@ export interface AddStatusEffectInput {
  * 同じ状態異常がすでにある場合は、残りターン数が長い方を採用する。
  */
 export function addStatusEffect(input: AddStatusEffectInput): void {
-  /**
-   * 混乱とチャージ攻撃など、
-   * 同時に存在できない状態異常を先に解決する。
-   */
   const canApplyStatusEffect = resolveIncompatibleStatusEffects(input);
 
   if (!canApplyStatusEffect) {
     return;
   }
-  //凍傷専用処理
+
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
 
@@ -6131,17 +7546,31 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
   const duration =
     input.duration ?? getDefaultStatusDuration(input.statusEffectId);
 
-  const existing = input.target.statusEffects.find(
-    (effect) => effect.id === input.statusEffectId,
+  const category = resolveAppliedStatusEffectCategory(
+    input.statusEffectId,
+    input.category,
   );
+
+  const existing = input.target.statusEffects.find((effect) => {
+    return effect.id === input.statusEffectId;
+  });
 
   if (existing) {
     const before = existing.remainingTurns;
 
     if (duration > existing.remainingTurns) {
       existing.remainingTurns = duration;
+
       existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
       existing.sourceSkillId = input.sourceSkillId;
+
+      /**
+       * 継続ターンが更新される場合は、
+       * 新しく付与した技の分類も反映する。
+       */
+      existing.category = category;
+
       existing.params = cloneStatusEffectParams(input.params);
 
       input.state.logs.unshift(
@@ -6161,6 +7590,7 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
     remainingTurns: duration,
     sourceUnitInstanceId: input.sourceUnitInstanceId,
     sourceSkillId: input.sourceSkillId,
+    category,
     params: cloneStatusEffectParams(input.params),
   });
 
@@ -6394,7 +7824,7 @@ function matchesRemoveStatusEffectCondition(
     return false;
   }
 
-  const category = getStatusEffectCategory(statusEffect.id);
+  const category = getAppliedStatusEffectCategory(statusEffect);
 
   if (
     hasFilter(condition.categories) &&
@@ -6625,6 +8055,11 @@ function cloneFrostbiteStatusParams(
 function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
   const duration = input.duration ?? getDefaultStatusDuration("frostbite");
 
+  const category = resolveAppliedStatusEffectCategory(
+    "frostbite",
+    input.category,
+  );
+
   const incomingParams =
     input.params?.type === "frostbite" ? input.params : undefined;
 
@@ -6632,9 +8067,6 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
 
   const existing = getFrostbiteStatusEffect(input.target);
 
-  /**
-   * 新規付与。
-   */
   if (!existing) {
     const freezingReelNums = createFreezingReelNums(incomingLevel);
 
@@ -6643,6 +8075,7 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
       remainingTurns: duration,
       sourceUnitInstanceId: input.sourceUnitInstanceId,
       sourceSkillId: input.sourceSkillId,
+      category,
       params: {
         type: "frostbite",
         level: incomingLevel,
@@ -6657,10 +8090,6 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
     return;
   }
 
-  /**
-   * 既存のレベルへ新しいレベルを加算し、
-   * 最大3に制限する。
-   */
   const beforeLevel = existing.params.level;
 
   const nextLevel = Math.min(3, beforeLevel + incomingLevel);
@@ -6669,10 +8098,6 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
 
   const nextDuration = Math.max(existing.remainingTurns, duration);
 
-  /**
-   * 新しいレベルに対応した数だけ、
-   * 凍傷リール枠をすべて再抽選する。
-   */
   const nextFreezingReelNums = createFreezingReelNums(nextLevel);
 
   existing.remainingTurns = nextDuration;
@@ -6680,6 +8105,12 @@ function addFrostbiteStatusEffect(input: AddStatusEffectInput): void {
   existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
 
   existing.sourceSkillId = input.sourceSkillId;
+
+  /**
+   * 凍傷は再付与が必ず有効なので、
+   * 新しく付与された分類へ更新する。
+   */
+  existing.category = category;
 
   existing.params = {
     type: "frostbite",
@@ -6732,6 +8163,39 @@ export function resolveFrostbiteOnReelSelection(
   );
 
   return true;
+}
+
+export function getDefaultStatusEffectCategory(
+  id: StatusEffectId,
+): StatusEffectCategory {
+  return statusEffectDefinitions[id].category;
+}
+
+/**
+ * 状態異常付与時に使う最終的な分類を決定する。
+ *
+ * 技側のcategoryが指定されていればそれを優先し、
+ * 未指定なら状態異常定義側のcategoryを使う。
+ */
+function resolveAppliedStatusEffectCategory(
+  statusEffectId: StatusEffectId,
+  category: StatusEffectCategory | undefined,
+): StatusEffectCategory {
+  return category ?? getDefaultStatusEffectCategory(statusEffectId);
+}
+
+/**
+ * 戦闘中の状態異常に実際に適用されている分類を返す。
+ *
+ * categoryが保存されていない古いデータでは、
+ * 状態異常定義側の分類へフォールバックする。
+ */
+export function getAppliedStatusEffectCategory(
+  statusEffect: BattleStatusEffect,
+): StatusEffectCategory {
+  return (
+    statusEffect.category ?? getDefaultStatusEffectCategory(statusEffect.id)
+  );
 }
 
 
@@ -7679,11 +9143,15 @@ code {
 ==================================================
 FILE: src/types/battle.ts
 ==================================================
-import type { Position, SkillId, TeamSide } from "./common";
+import type { ItemId, Position, SkillId, TeamSide } from "./common";
 import type { UnitDefinition } from "./unit";
 import type { SkillDefinition } from "./skill";
 import type { TeamBonusResult } from "./teamBonus";
-import type { StatusEffectId, StatusEffectParams } from "./statusEffect";
+import type {
+  StatusEffectCategory,
+  StatusEffectId,
+  StatusEffectParams,
+} from "./statusEffect";
 import type { CounterEvent } from "./counter";
 import type { SkillExecutionInfo } from "./skillExecution";
 
@@ -7692,6 +9160,12 @@ export interface BattleUnit {
   definition: UnitDefinition;
   side: TeamSide;
   position: Position;
+
+  /**
+   * 戦闘開始時に選択されたアイテム。
+   * nullはアイテムなし。
+   */
+  itemId: ItemId | null;
 
   maxHp: number;
   attack: number;
@@ -7718,7 +9192,16 @@ export interface BattleStatusEffect {
   sourceSkillId: SkillId;
 
   /**
-   * カウンター状態など、追加設定が必要な状態異常用。
+   * この状態異常に実際に適用されている分類。
+   *
+   * 未指定の場合はstatusEffectDefinitionsの分類を使う。
+   * 古い戦闘データとの互換性のため任意項目にしている。
+   */
+  category?: StatusEffectCategory;
+
+  /**
+   * カウンター状態など、
+   * 追加設定が必要な状態異常用。
    */
   params?: StatusEffectParams;
 }
@@ -7755,6 +9238,7 @@ export interface BattleState {
   pendingTargetSelection: PendingTargetSelection | null;
   lastRolledReelSlot: UsedReelSlot | null;
   extraActionQueue: string[];
+  reelProbabilityBiasEnabled: boolean;
 
   logs: string[];
 
@@ -7822,7 +9306,8 @@ export type Species =
   | "demon"
   | "undead"
   | "angel"
-  | "beast";
+  | "beast"
+  | "aquatic";
 
 export const speciesLabels: Record<Species, string> = {
   dragon: "ドラゴン",
@@ -7836,7 +9321,10 @@ export const speciesLabels: Record<Species, string> = {
   undead: "アンデッド",
   angel: "天使",
   beast: "獣",
+  aquatic: "水族",
 };
+
+export type ItemId = string;
 
 
 ==================================================
@@ -7855,27 +9343,144 @@ export interface CounterEvent {
 
 
 ==================================================
+FILE: src/types/effectExecution.ts
+==================================================
+import type { SkillDefinition } from "./skill";
+
+/**
+ * 技を介さない実行効果の発生理由。
+ *
+ * 今後種類が増えた場合はここへ追加する。
+ */
+export type DirectEffectSource =
+  | "counter"
+  | "status_effect"
+  | "turn_end"
+  | "item"
+  | "system"
+  | "other";
+
+/**
+ * 実行効果がどのような経路で発生したか。
+ *
+ * skill:
+ *   通常の技処理として実行された効果。
+ *   アンデッドへの物理・魔法補正など、
+ *   「技によるダメージ」専用ルールを適用できる。
+ *
+ * direct:
+ *   カウンター、状態異常、ターン終了時処理など、
+ *   技の通常実行を介さない効果。
+ */
+export type EffectOrigin =
+  | {
+      type: "skill";
+    }
+  | {
+      type: "direct";
+      source: DirectEffectSource;
+    };
+
+/**
+ * EffectContextなどで使うための補助型。
+ *
+ * skillは、属性・カテゴリ・技名などの参照に使う。
+ * originは、その効果が技の通常実行かどうかを判定する。
+ */
+export interface EffectExecutionSource {
+  skill: SkillDefinition;
+  origin: EffectOrigin;
+}
+
+
+==================================================
+FILE: src/types/item.ts
+==================================================
+import type { ItemId } from "./common";
+import type {
+  StatusEffectCategory,
+  StatusEffectId,
+  StatusEffectParams,
+} from "./statusEffect";
+
+export interface ItemStatBonus {
+  maxHp?: number;
+  attack?: number;
+  speed?: number;
+}
+
+/**
+ * アイテムによって戦闘開始時に付与される状態異常。
+ *
+ * apply_status_effectと同様に、
+ * duration、category、params、chanceを指定できる。
+ */
+export interface ItemStartStatusEffect {
+  statusEffectId: StatusEffectId;
+
+  /**
+   * 未指定なら状態異常定義のdefaultDurationを使う。
+   */
+  duration?: number;
+
+  /**
+   * 未指定なら状態異常定義のcategoryを使う。
+   */
+  category?: StatusEffectCategory;
+
+  params?: StatusEffectParams;
+
+  /**
+   * 未指定なら100%。
+   */
+  chance?: number;
+}
+
+export interface ItemDefinition {
+  id: ItemId;
+  name: string;
+
+  /**
+   * 戦闘開始時のステータス補正。
+   */
+  statBonus: ItemStatBonus;
+
+  /**
+   * 戦闘開始時に所持者へ付与する状態異常。
+   */
+  startStatusEffects: ItemStartStatusEffect[];
+}
+
+
+==================================================
 FILE: src/types/setup.ts
 ==================================================
-
-import type { UnitId } from './common'
+import type { ItemId, UnitId } from "./common";
 
 export interface TeamSelection {
-  leader: UnitId
-  left: UnitId
-  right: UnitId
+  leader: UnitId;
+  left: UnitId;
+  right: UnitId;
+
+  items: {
+    leader: ItemId | null;
+    left: ItemId | null;
+    right: ItemId | null;
+  };
 }
 
 export interface BattleSetup {
-  ally: TeamSelection
-  enemy: TeamSelection
+  ally: TeamSelection;
+  enemy: TeamSelection;
+
+  reelProbabilityBiasEnabled: boolean;
 }
 
 
 ==================================================
 FILE: src/types/skill.ts
 ==================================================
-import type { Attribute, SkillId } from "./common";
+import type { Attribute, SkillId, Gender, Species } from "./common";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -7948,6 +9553,7 @@ export type EffectAction =
   | ApplyStatusEffectAction
   | RemoveStatusEffectAction
   | RandomAction
+  | ConditionalAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -8046,12 +9652,21 @@ export interface ApplyStatusEffectAction {
   statusEffectId: StatusEffectId;
 
   /**
-   * 指定しない場合は状態異常側の defaultDuration を使う。
+   * 指定しない場合は状態異常側のdefaultDurationを使う。
    */
   duration?: number;
 
   /**
-   * カウンター状態など、状態異常ごとの追加パラメータ。
+   * この付与によって生成される状態異常の分類。
+   *
+   * 指定しない場合はstatusEffectDefinitions側の
+   * categoryを使う。
+   */
+  category?: StatusEffectCategory;
+
+  /**
+   * カウンター状態など、
+   * 状態異常ごとの追加パラメータ。
    */
   params?: StatusEffectParams;
 
@@ -8126,6 +9741,91 @@ export interface RandomAction {
    * 候補を選ぶ前に1回だけ判定する。
    * 失敗した場合、すべての対象に対して
    * 候補内の実行効果はどれも使われない。
+   */
+  chance?: number;
+}
+
+/**
+ * 分岐効果で対象を判定する条件。
+ *
+ * 同じ配列内:
+ *   いずれか1つに一致すれば条件を満たす。
+ *
+ * 異なる条件種類:
+ *   指定された条件種類をすべて満たす必要がある。
+ *
+ * 未指定または空配列:
+ *   その条件種類は判定しない。
+ */
+export interface ConditionalActionConditions {
+  /**
+   * 対象の性別。
+   *
+   * 例:
+   * ["male", "female"]
+   *
+   * maleまたはfemaleなら一致。
+   */
+  genders?: Gender[];
+
+  /**
+   * 対象の属性。
+   *
+   * 例:
+   * ["fire", "heat"]
+   *
+   * fireまたはheatなら一致。
+   */
+  attributes?: Attribute[];
+
+  /**
+   * 対象の種族。
+   *
+   * 例:
+   * ["dragon", "undead"]
+   *
+   * dragonまたはundeadなら一致。
+   */
+  species?: Species[];
+
+  /**
+   * 対象が現在持っている状態異常。
+   *
+   * 複数指定した場合は、そのうちいずれか1つを
+   * 持っていれば一致する。
+   */
+  statusEffectIds?: StatusEffectId[];
+}
+
+/**
+ * 条件に応じて異なる実行効果を適用する。
+ *
+ * 対象が複数いる場合は、対象ごとに個別判定する。
+ */
+export interface ConditionalAction {
+  type: "conditional_action";
+
+  conditions: ConditionalActionConditions;
+
+  /**
+   * 条件を満たした対象に実行する効果。
+   */
+  matchedActions: EffectAction[];
+
+  /**
+   * 条件を満たさなかった対象に実行する効果。
+   *
+   * 不一致時に何もしない場合は空配列を指定する。
+   */
+  unmatchedActions: EffectAction[];
+
+  /**
+   * conditional_action自体の発生確率。
+   *
+   * この判定は、対象ごとの条件判定より前に
+   * 1回だけ行われる。
+   *
+   * 未指定なら100%。
    */
   chance?: number;
 }
@@ -8376,7 +10076,14 @@ export interface TeamBonusResult {
 ==================================================
 FILE: src/types/unit.ts
 ==================================================
-import type { Attribute, Gender, SkillId, Species, UnitId } from "./common";
+import type {
+  Attribute,
+  Gender,
+  ItemId,
+  SkillId,
+  Species,
+  UnitId,
+} from "./common";
 
 export interface UnitDefinition {
   id: UnitId;
@@ -8390,17 +10097,21 @@ export interface UnitDefinition {
   attribute: Attribute;
   gender: Gender;
 
-  /**
-   * 最大4つの技リール。
-   * 各リールには6つの技IDを入れる想定。
-   */
   reels: SkillId[][];
 
-  /**
-   * 技リールとは別に持つ必殺技。
-   */
   specialSkillId: SkillId;
+
   specialGaugeConsumption?: number;
+
+  /**
+   * ユニット選択時に自動選択するアイテム。
+   *
+   * 未指定の場合:
+   * ・初回表示ではitems.tsの先頭アイテム
+   * ・選択画面上でユニットを変更した場合は、
+   *   現在選択中のアイテムを維持する
+   */
+  defaultItemId?: ItemId;
 }
 
 

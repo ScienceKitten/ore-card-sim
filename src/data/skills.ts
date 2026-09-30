@@ -1748,14 +1748,15 @@ export const skills: Record<string, SkillDefinition> = {
             multiplier: 2.2,
           },
           {
-            type: "apply_status_effect",
-            statusEffectId: "poison",
+            type: "damage",
+            multiplier: 100000,
             chance: 0.1,
           },
         ],
       },
     ],
   },
+
   wakugouku: {
     id: "wakugouku",
     name: "惑業苦",
@@ -1768,6 +1769,37 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.5,
+          },
+        ],
+      },
+    ],
+  },
+  zigokudou: {
+    id: "zigokudou",
+    name: "地獄道",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "single_enemy",
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "damage_chain",
+            params: {
+              type: "damage_chain",
+              multiplier: 1,
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "extra_action",
           },
         ],
       },

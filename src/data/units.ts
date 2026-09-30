@@ -2,6 +2,27 @@ import type { UnitDefinition } from "../types/unit";
 
 export const units: UnitDefinition[] = [
   {
+    id: "test_slime",
+    name: "テストスライム",
+    maxHp: 999,
+    attack: 10,
+    speed: 99,
+    species: "slime",
+    attribute: "none",
+    gender: "none",
+    reels: [
+      [
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+      ],
+    ],
+    specialSkillId: "test_counter",
+  },
+  {
     id: "zeno_dragon_water",
     name: "我竜ゼノドラゴン（水）",
     maxHp: 388,
@@ -878,7 +899,8 @@ export const units: UnitDefinition[] = [
         "senrinbou",
       ],
     ],
-    specialSkillId: "senrinbou",
+    specialSkillId: "zigokudou",
+    defaultItemId: "poison_orb",
   },
   {
     id: "Leonard_demon_king_demon",
@@ -970,27 +992,7 @@ export const units: UnitDefinition[] = [
     ],
     specialSkillId: "test_counter",
   },
-  {
-    id: "test_slime",
-    name: "テストスライム",
-    maxHp: 999,
-    attack: 10,
-    speed: 99,
-    species: "slime",
-    attribute: "none",
-    gender: "none",
-    reels: [
-      [
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-      ],
-    ],
-    specialSkillId: "test_counter",
-  },
+
   {
     id: "test_mage",
     name: "テストメイジ",

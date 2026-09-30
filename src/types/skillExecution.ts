@@ -58,4 +58,27 @@ export interface SkillExecutionInfo {
    * カウンターのrequireDamage判定に使う。
    */
   damageTargetInstanceIds: Set<string>;
+  damageResolution: DamageResolutionState;
+}
+
+export interface DamageResolutionState {
+  /**
+   * この処理解決単位が開始した時点で生存していたユニット。
+   *
+   * この集合に含まれるユニットは、
+   * 処理途中でHP0になっても、すでに確定済みの
+   * 残りヒットを受けられる。
+   */
+  initiallyAliveUnitInstanceIds: Set<string>;
+
+  /**
+   * HPが0になり、処理終了時に死亡確定するユニット。
+   */
+  pendingDefeatUnitInstanceIds: Set<string>;
+
+  /**
+   * そのユニットについて撃破時ゲージを
+   * すでに付与したか。
+   */
+  defeatGaugeAwardedUnitInstanceIds: Set<string>;
 }

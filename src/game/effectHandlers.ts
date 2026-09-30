@@ -10,13 +10,14 @@ import type {
 } from "../types/statusEffect";
 import {
   addStatusEffect,
-  cancelChargedAttackByDamage,
   getStatusEffectName,
   removeStatusEffectsByCondition,
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
 import { applyHealing } from "./healing";
 import type { EffectOrigin } from "../types/effectExecution";
+import { applyBattleDamage } from "./battleDamage";
+import type { DamageResolutionState } from "../types/skillExecution";
 
 interface EffectContext {
   state: BattleState;
@@ -36,6 +37,10 @@ interface EffectContext {
   origin: EffectOrigin;
 
   usedReelSlot: UsedReelSlot | null;
+  /**
+   * 一連の技・直接効果内で共有する死亡保留情報。
+   */
+  damageResolution: DamageResolutionState;
 }
 
 export function applyEffectAction(
@@ -171,8 +176,6 @@ function applyDamage(
   const results: AppliedDamageResult[] = [];
 
   for (const target of targets) {
-    if (target.currentHp <= 0) continue;
-
     const calculation = calculateDamage({
       attacker: context.actor,
       defender: target,
@@ -181,24 +184,30 @@ function applyDamage(
       origin: context.origin,
     });
 
-    const beforeHp = target.currentHp;
-    target.currentHp = Math.max(0, target.currentHp - calculation.damage);
+    /**
+     * HP減少とダメージ副作用を
+     * 共通処理へ委譲する。
+     */
+    const damageResult = applyBattleDamage({
+      state: context.state,
+      target,
+      amount: calculation.damage,
+      origin: context.origin,
+      damageResolution: context.damageResolution,
+      grantsSpecialGauge: true,
 
-    const actualDamage = beforeHp - target.currentHp;
+      damageMessage: (damage) => {
+        return `${target.definition.name} に ${damage} ダメージ。`;
+      },
+    });
 
     results.push({
       target,
       calculatedDamage: calculation.damage,
-      actualDamage,
-      beforeHp,
-      afterHp: target.currentHp,
+      actualDamage: damageResult.actualDamage,
+      beforeHp: damageResult.beforeHp,
+      afterHp: damageResult.afterHp,
     });
-
-    cancelChargedAttackByDamage(context.state, target, calculation.damage);
-
-    context.state.logs.unshift(
-      `${target.definition.name} に ${calculation.damage} ダメージ。`,
-    );
 
     const effectivenessText = getAttributeEffectivenessText(
       calculation.attributeMultiplier,
@@ -212,14 +221,10 @@ function applyDamage(
       `属性倍率: x${calculation.attributeMultiplier.toFixed(2)}`,
     );
 
-    const targetTeam =
-      target.side === "ally" ? context.state.allyTeam : context.state.enemyTeam;
-
-    addSpecialGauge(targetTeam, 1);
-
-    if (beforeHp > 0 && target.currentHp === 0) {
-      context.state.logs.unshift(`${target.definition.name} は倒れた。`);
-      addSpecialGauge(targetTeam, 1);
+    if (calculation.undeadCategoryMultiplier !== 1) {
+      context.state.logs.unshift(
+        `アンデッド種族補正: x${calculation.undeadCategoryMultiplier.toFixed(2)}`,
+      );
     }
   }
 

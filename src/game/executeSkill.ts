@@ -50,6 +50,7 @@ import {
 } from "./targetSelectors";
 import { createSkillExecutionInfo } from "./skillExecution";
 import { randomChoice, rollChance } from "../utils/random";
+import { finalizePendingDefeats } from "./battleDamage";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -301,10 +302,7 @@ function executeSkillBody(
 ): void {
   const counterEvents: CounterEvent[] = [];
 
-  const executionInfo: SkillExecutionInfo = createSkillExecutionInfo(
-    actor,
-    source,
-  );
+  const executionInfo = createSkillExecutionInfo(state, actor, source);
 
   executeEffectsFromIndex(
     state,
@@ -379,7 +377,13 @@ function executeEffectsFromIndex(
         if (!confusionSuccess) {
           state.logs.unshift("しかし、対象がいなかった。");
 
-          finishSkillAndActorTurn(state, actor, skills, counterEvents);
+          finishSkillAndActorTurn(
+            state,
+            actor,
+            skills,
+            counterEvents,
+            executionInfo,
+          );
 
           return;
         }
@@ -420,7 +424,13 @@ function executeEffectsFromIndex(
       if (selectableTargets.length === 0) {
         state.logs.unshift("しかし、対象がいなかった。");
 
-        finishSkillAndActorTurn(state, actor, skills, counterEvents);
+        finishSkillAndActorTurn(
+          state,
+          actor,
+          skills,
+          counterEvents,
+          executionInfo,
+        );
 
         return;
       }
@@ -481,7 +491,13 @@ function executeEffectsFromIndex(
     if (effectiveTargetSelector.type !== "none" && targets.length === 0) {
       state.logs.unshift("しかし、対象がいなかった。");
 
-      finishSkillAndActorTurn(state, actor, skills, counterEvents);
+      finishSkillAndActorTurn(
+        state,
+        actor,
+        skills,
+        counterEvents,
+        executionInfo,
+      );
 
       return;
     }
@@ -498,7 +514,7 @@ function executeEffectsFromIndex(
     );
   }
 
-  finishSkillAndActorTurn(state, actor, skills, counterEvents);
+  finishSkillAndActorTurn(state, actor, skills, counterEvents, executionInfo);
 }
 
 export function continueSkillWithSelectedTarget(
@@ -632,6 +648,7 @@ function applySkillAction(
         type: "skill",
       },
       usedReelSlot,
+      damageResolution: executionInfo.damageResolution,
     });
 
     return;
@@ -672,6 +689,7 @@ function applySkillAction(
       type: "skill",
     },
     usedReelSlot,
+    damageResolution: executionInfo.damageResolution,
   });
 }
 
@@ -680,7 +698,18 @@ function finishSkillAndActorTurn(
   actor: BattleUnit,
   skills: Record<string, SkillDefinition>,
   counterEvents: CounterEvent[],
+  executionInfo: SkillExecutionInfo,
 ): void {
+  /**
+   * まず技のすべてのダメージを処理し終えてから、
+   * HP0ユニットの死亡を確定する。
+   */
+  finalizePendingDefeats(state, executionInfo.damageResolution);
+
+  if (state.result.status !== "in_progress") {
+    return;
+  }
+
   resolveCounterEvents(state, counterEvents, skills);
 
   if (state.result.status !== "in_progress") {

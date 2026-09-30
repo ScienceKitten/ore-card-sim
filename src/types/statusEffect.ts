@@ -14,7 +14,8 @@ export type StatusEffectId =
   | "heal_block"
   | "frostbite"
   | "counter"
-  | "charged_attack";
+  | "charged_attack"
+  | "damage_chain";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -37,7 +38,8 @@ export interface StatusEffectDefinition {
 export type StatusEffectParams =
   | CounterStatusParams
   | ChargedAttackStatusParams
-  | FrostbiteStatusParams;
+  | FrostbiteStatusParams
+  | DamageChainStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -145,6 +147,19 @@ export interface FrostbiteStatusParams {
    * 技データでは指定せず、状態異常付与時に生成する。
    */
   freezingReelNums?: number[];
+}
+
+export interface DamageChainStatusParams {
+  type: "damage_chain";
+
+  /**
+   * 元の計算ダメージに乗算する倍率。
+   *
+   * 例:
+   * 0.5 = 元ダメージの50%
+   * 1   = 元ダメージと同じ
+   */
+  multiplier: number;
 }
 
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";
