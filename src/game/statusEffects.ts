@@ -162,11 +162,14 @@ export function applyActionEndStatusEffects(
   for (const statusEffect of unit.statusEffects) {
     switch (statusEffect.id) {
       case "poison":
-        applyPoisonDamage(state, unit);
+        applyPoisonLikeEffect(state, unit, 0.1, "毒");
+        break;
+
+      case "strong_poison":
+        applyPoisonLikeEffect(state, unit, 0.2, "猛毒");
         break;
 
       case "paralysis":
-        // 麻痺は行動開始時に処理するので、ここでは何もしない
         break;
     }
 
@@ -180,52 +183,44 @@ export function applyActionEndStatusEffects(
   decrementStatusDurations(state, unit);
 }
 
-function applyPoisonDamage(state: BattleState, unit: BattleUnit): void {
+function applyPoisonLikeEffect(
+  state: BattleState,
+  unit: BattleUnit,
+  hpRate: number,
+  statusName: string,
+): void {
   if (unit.currentHp <= 0) {
     return;
   }
 
-  /**
-   * 毒の効果量。
-   *
-   * 通常種族:
-   *   現在HPの10%ダメージ
-   *
-   * アンデッド:
-   *   現在HPの10%回復
-   */
-  const amount = Math.max(1, Math.floor(unit.currentHp * 0.1));
+  const amount = Math.max(1, Math.floor(unit.currentHp * hpRate));
 
-  /**
-   * アンデッドは毒ダメージを受けず、
-   * 代わりに同じ数値だけ回復する。
+  /*
+   * アンデッドは毒・猛毒でダメージを受けず、
+   * 同じ量だけ回復する。
    */
   if (unit.definition.species === "undead") {
-    applyPoisonHealing(state, unit, amount);
+    applyPoisonLikeHealing(state, unit, amount, statusName);
 
     return;
   }
 
-  applyPoisonDirectDamage(state, unit, amount);
+  applyPoisonLikeDamage(state, unit, amount, statusName);
 }
-function applyPoisonDirectDamage(
+
+function applyPoisonLikeDamage(
   state: BattleState,
   unit: BattleUnit,
-  damage: number,
+  amount: number,
+  statusName: string,
 ): void {
   const damageResolution = createDamageResolutionState(state);
 
   applyBattleDamage({
     state,
     target: unit,
-    amount: damage,
+    amount,
 
-    /**
-     * 毒は状態異常による直接ダメージ。
-     *
-     * 技ダメージではないため、
-     * ダメージチェーンは発動しない。
-     */
     origin: {
       type: "direct",
       source: "status_effect",
@@ -233,45 +228,31 @@ function applyPoisonDirectDamage(
 
     damageResolution,
 
-    /**
-     * 毒ダメージでは必殺技ゲージを増加させない。
-     *
-     * 毒で戦闘不能になった場合の
-     * 撃破時ゲージも増加しない。
+    /*
+     * 毒・猛毒では被ダメージゲージも
+     * 撃破時ゲージも増やさない。
      */
     grantsSpecialGauge: false,
 
-    damageMessage: (appliedDamage) => {
-      return `${unit.definition.name} は毒で ${appliedDamage} ダメージを受けた。`;
+    damageMessage: (damage) => {
+      return `${unit.definition.name} は${statusName}で ${damage} ダメージを受けた。`;
     },
   });
 
-  /**
-   * 毒は単発の直接効果なので、
-   * ダメージ適用後すぐに死亡を確定する。
-   */
   finalizePendingDefeats(state, damageResolution);
 }
 
-function applyPoisonHealing(
+function applyPoisonLikeHealing(
   state: BattleState,
   unit: BattleUnit,
   amount: number,
+  statusName: string,
 ): void {
   const healingResult = applyHealing({
     state,
-
-    /**
-     * 毒による自己回復なので、
-     * 回復者と対象は同じユニットとする。
-     */
     healer: unit,
     target: unit,
     amount,
-
-    /**
-     * 技ではなく状態異常による回復。
-     */
     sourceType: "status_effect",
   });
 
@@ -279,12 +260,9 @@ function applyPoisonHealing(
     return;
   }
 
-  /**
-   * 回復無効状態なら、毒による回復も無効。
-   */
   if (healingResult.blocked) {
     state.logs.unshift(
-      `${unit.definition.name} は回復無効により毒の効果でHPを回復できなかった。`,
+      `${unit.definition.name} は回復無効により${statusName}の効果でHPを回復できなかった。`,
     );
 
     return;
@@ -292,14 +270,14 @@ function applyPoisonHealing(
 
   if (healingResult.actualAmount <= 0) {
     state.logs.unshift(
-      `${unit.definition.name} は毒の効果を受けたが、HPは回復しなかった。`,
+      `${unit.definition.name} は${statusName}の効果を受けたが、HPは回復しなかった。`,
     );
 
     return;
   }
 
   state.logs.unshift(
-    `${unit.definition.name} は毒の効果でHPが ${healingResult.actualAmount} 回復した。`,
+    `${unit.definition.name} は${statusName}の効果でHPが ${healingResult.actualAmount} 回復した。`,
   );
 }
 
@@ -584,16 +562,15 @@ function resolveIncompatibleStatusEffects(
 ): boolean {
   const target = input.target;
 
-  /**
-   * 混乱を付与するとき、
-   * すでに持っているチャージ攻撃状態を解除する。
+  /*
+   * 既存の混乱・チャージ攻撃の排他処理
    */
   if (input.statusEffectId === "confusion") {
-    const chargedAttackEffects = target.statusEffects.filter((statusEffect) => {
+    const hasChargedAttack = target.statusEffects.some((statusEffect) => {
       return statusEffect.id === "charged_attack";
     });
 
-    if (chargedAttackEffects.length > 0) {
+    if (hasChargedAttack) {
       target.statusEffects = target.statusEffects.filter((statusEffect) => {
         return statusEffect.id !== "charged_attack";
       });
@@ -606,16 +583,46 @@ function resolveIncompatibleStatusEffects(
     return true;
   }
 
-  /**
-   * 混乱中にチャージ攻撃状態を付与しようとしても、
-   * チャージ攻撃状態は残らない。
-   */
   if (
     input.statusEffectId === "charged_attack" &&
     hasStatusEffect(target, "confusion")
   ) {
     input.state.logs.unshift(
       `${target.definition.name} は混乱しているためチャージ攻撃状態になれなかった。`,
+    );
+
+    return false;
+  }
+
+  /*
+   * 猛毒を付与するときは、既存の毒を解除する。
+   */
+  if (input.statusEffectId === "strong_poison") {
+    const hadPoison = hasStatusEffect(target, "poison");
+
+    if (hadPoison) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "poison";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} の毒が猛毒に上書きされた。`,
+      );
+    }
+
+    return true;
+  }
+
+  /*
+   * 猛毒を持つユニットには、
+   * 通常の毒を付与できない。
+   */
+  if (
+    input.statusEffectId === "poison" &&
+    hasStatusEffect(target, "strong_poison")
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} は猛毒状態のため、毒にはならなかった。`,
     );
 
     return false;

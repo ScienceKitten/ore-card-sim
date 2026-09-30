@@ -847,6 +847,28 @@ export const units: UnitDefinition[] = [
     specialGaugeConsumption: 4,
   },
   {
+    id: "arura",
+    name: "アルラ",
+    maxHp: 105,
+    attack: 52,
+    speed: 45,
+    species: "undead",
+    attribute: "earth",
+    gender: "none",
+    reels: [
+      [
+        "miss",
+        "ex_plus_2",
+        "poison_gus",
+        "poison_gus",
+        "poison_gus",
+        "poison_gus",
+      ],
+    ],
+    specialSkillId: "suicide_attack",
+    specialGaugeConsumption: 6,
+  },
+  {
     id: "white_dragon",
     name: "ホワイトドラゴン",
     maxHp: 378,

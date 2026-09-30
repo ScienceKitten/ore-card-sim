@@ -6,6 +6,7 @@ import type { SkillId } from "./common";
 export type StatusEffectId =
   | "paralysis"
   | "poison"
+  | "strong_poison"
   | "confusion"
   | "seal_physical"
   | "seal_magic"

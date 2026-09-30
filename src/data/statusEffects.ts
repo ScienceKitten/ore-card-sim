@@ -87,4 +87,10 @@ export const statusEffectDefinitions: Record<
     category: "harmful",
     defaultDuration: 2,
   },
+  strong_poison: {
+    id: "strong_poison",
+    name: "猛毒",
+    category: "harmful",
+    defaultDuration: 99,
+  },
 };

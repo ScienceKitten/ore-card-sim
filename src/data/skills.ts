@@ -1857,4 +1857,92 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  poison_gus: {
+    id: "poison_gus",
+    name: "毒ガス",
+    attributes: ["poison"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "conditional_action",
+            conditions: {
+              statusEffectIds: ["poison"],
+            },
+            matchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "strong_poison",
+                chance: 0.6,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "poison",
+                chance: 0.6,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        target: { type: "all_allies" },
+        actions: [
+          {
+            type: "conditional_action",
+            conditions: {
+              statusEffectIds: ["poison"],
+            },
+            matchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "strong_poison",
+                chance: 0.6,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "poison",
+                chance: 0.6,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  suicide_attack: {
+    id: "suicide_attack",
+    name: "玉砕攻撃",
+    attributes: ["poison"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1000,
+          },
+        ],
+      },
+    ],
+  },
 };
