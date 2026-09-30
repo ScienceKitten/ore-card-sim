@@ -1961,7 +1961,6 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "heal_block",
-            duration: 1,
           },
         ],
       },
