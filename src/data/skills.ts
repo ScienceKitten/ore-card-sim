@@ -1747,11 +1747,6 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 2.2,
           },
-          {
-            type: "damage",
-            multiplier: 100000,
-            chance: 0.1,
-          },
         ],
       },
     ],
