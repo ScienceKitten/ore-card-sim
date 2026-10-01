@@ -1213,6 +1213,23 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  ice_breath: {
+    id: "ice_breath",
+    name: "アイスブレス",
+    attributes: ["ice"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.2,
+          },
+        ],
+      },
+    ],
+  },
   diamonddust_breath: {
     id: "diamonddust_breath",
     name: "ダイヤモンドダストの息",
