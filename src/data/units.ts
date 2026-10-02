@@ -988,7 +988,7 @@ export const units: UnitDefinition[] = [
         "holy_breath",
       ],
     ],
-    specialSkillId: "holy_breath",
+    specialSkillId: "mystical_white_cocoon",
   },
   {
     id: "auslese_demon_king",

@@ -1627,6 +1627,22 @@ export const skills: Record<string, SkillDefinition> = {
           },
         ],
       },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "flat",
+                value: 20,
+              },
+            },
+          },
+        ],
+      },
     ],
   },
   divine_punishment_azure_fang_dragon_sword: {
@@ -1641,6 +1657,22 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.5,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "flat",
+                value: 20,
+              },
+            },
           },
         ],
       },
@@ -1746,6 +1778,30 @@ export const skills: Record<string, SkillDefinition> = {
                 multiplier: 1.391,
               },
             ],
+          },
+        ],
+      },
+    ],
+  },
+  mystical_white_cocoon: {
+    id: "mystical_white_cocoon",
+    name: "輝く神秘の繭",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "all_allies",
+          includeSelf: true,
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "blessing",
+            params: {
+              type: "blessing",
+              attackMultiplier: 0.6,
+            },
           },
         ],
       },

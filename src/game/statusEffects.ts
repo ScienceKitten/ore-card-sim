@@ -5,17 +5,20 @@ import type {
 } from "../types/battle";
 import type { SkillId } from "../types/common";
 import type {
+  BlessingBattleStatusEffect,
+  BlessingStatusParams,
   ChargedAttackStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
   DamageChainStatusParams,
   FrostbiteStatusParams,
+  StatChangeStatusParams,
   StatusEffectCategory,
   StatusEffectId,
   StatusEffectParams,
 } from "../types/statusEffect";
 import { statusEffectDefinitions } from "../data/statusEffects";
-import { updateBattleResult } from "./battleQueries";
+import { getBattleUnitByInstanceId, updateBattleResult } from "./battleQueries";
 import type { SkillCategory, SkillDefinition } from "../types/skill";
 import type { TargetingMode } from "../types/skillExecution";
 import {
@@ -24,6 +27,7 @@ import {
   finalizePendingDefeats,
 } from "./battleDamage";
 import { applyHealing } from "./healing";
+import { getEffectiveAttack } from "./statChanges";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -78,15 +82,85 @@ export interface AddStatusEffectInput {
  * 同じ状態異常がすでにある場合は、残りターン数が長い方を採用する。
  */
 export function addStatusEffect(input: AddStatusEffectInput): void {
+  /**
+   * 加護をアンデッドへ付与する場合、
+   * 継続2ターンの呪いへ変換する。
+   *
+   * 変換後の呪いには再度種族変換を適用しない。
+   */
+  if (
+    input.statusEffectId === "blessing" &&
+    input.target.definition.species === "undead"
+  ) {
+    addCurseStatusEffect({
+      ...input,
+      statusEffectId: "curse",
+      duration: 2,
+      category: undefined,
+      params: undefined,
+    });
+    input.state.logs.unshift(
+      `${input.target.definition.name} はアンデッドのため、加護が呪いに変化した。`,
+    );
+    return;
+  }
+  /**
+   * 呪いをアンデッドへ付与する場合、
+   * 対象自身の攻撃力50%の加護へ変換する。
+   *
+   * 変換後の加護には再度種族変換を適用しない。
+   */
+  if (
+    input.statusEffectId === "curse" &&
+    input.target.definition.species === "undead"
+  ) {
+    const healAmount = Math.max(
+      0,
+      Math.floor(getEffectiveAttack(input.target) * 0.5),
+    );
+    addBlessingStatusEffect({
+      ...input,
+      statusEffectId: "blessing",
+      /**
+       * 変換後の加護はデフォルト99ターン。
+       */
+      duration: getDefaultStatusDuration("blessing"),
+      /**
+       * 変換後は加護のデフォルト分類benefit。
+       */
+      category: undefined,
+      params: {
+        type: "blessing",
+        healAmount,
+      },
+    });
+    input.state.logs.unshift(
+      `${input.target.definition.name} はアンデッドのため、呪いが加護に変化した。`,
+    );
+    return;
+  }
   const canApplyStatusEffect = resolveIncompatibleStatusEffects(input);
-
   if (!canApplyStatusEffect) {
     return;
   }
-
+  if (input.statusEffectId === "blessing") {
+    addBlessingStatusEffect(input);
+    return;
+  }
+  if (input.statusEffectId === "curse") {
+    addCurseStatusEffect(input);
+    return;
+  }
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
+    return;
+  }
 
+  if (
+    input.statusEffectId === "attack_change" ||
+    input.statusEffectId === "speed_change"
+  ) {
+    addStatChangeStatusEffect(input);
     return;
   }
 
@@ -156,31 +230,33 @@ export function applyActionEndStatusEffects(
 ): void {
   if (unit.currentHp <= 0) {
     decrementStatusDurations(state, unit);
+
     return;
   }
 
-  for (const statusEffect of unit.statusEffects) {
-    switch (statusEffect.id) {
-      case "poison":
-        applyPoisonLikeEffect(state, unit, 0.1, "毒");
-        break;
+  /**
+   * 1. 加護を最初に処理する。
+   */
+  applyBlessingAtActionEnd(state, unit);
 
-      case "strong_poison":
-        applyPoisonLikeEffect(state, unit, 0.2, "猛毒");
-        break;
-
-      case "paralysis":
-        break;
-    }
-
-    if (unit.currentHp <= 0) {
-      break;
-    }
+  /**
+   * 2. 毒・猛毒を処理する。
+   */
+  if (unit.currentHp > 0) {
+    applyPoisonStatusAtActionEnd(state, unit);
   }
 
-  updateBattleResult(state);
+  /**
+   * 3. ほかの行動終了時効果があればここで処理。
+   */
 
+  /**
+   * 4. 継続ターンを減らし、
+   *    呪いの期限切れを処理する。
+   */
   decrementStatusDurations(state, unit);
+
+  updateBattleResult(state);
 }
 
 function applyPoisonLikeEffect(
@@ -284,21 +360,46 @@ function applyPoisonLikeHealing(
 function decrementStatusDurations(state: BattleState, unit: BattleUnit): void {
   const expiredNames: string[] = [];
 
+  let curseExpired = false;
+
   for (const statusEffect of unit.statusEffects) {
     statusEffect.remainingTurns -= 1;
+
+    if (statusEffect.id === "curse" && statusEffect.remainingTurns <= 0) {
+      curseExpired = true;
+    }
   }
 
   unit.statusEffects = unit.statusEffects.filter((statusEffect) => {
-    if (statusEffect.remainingTurns <= 0) {
-      expiredNames.push(getStatusEffectName(statusEffect.id));
-      return false;
+    if (statusEffect.remainingTurns > 0) {
+      return true;
     }
 
-    return true;
+    /**
+     * 呪いは専用ログを出すため、
+     * 通常の解除ログには含めない。
+     */
+    if (statusEffect.id !== "curse") {
+      expiredNames.push(getStatusEffectName(statusEffect.id));
+    }
+
+    return false;
   });
 
   for (const name of expiredNames) {
     state.logs.unshift(`${unit.definition.name} の${name}が解けた。`);
+  }
+
+  /**
+   * 呪いはダメージではなく即死。
+   *
+   * ゲージ増加、チャージ解除、
+   * ダメージチェーンなどは発生しない。
+   */
+  if (curseExpired && unit.currentHp > 0) {
+    unit.currentHp = 0;
+
+    state.logs.unshift(`${unit.definition.name} は呪いにより命を失った。`);
   }
 }
 
@@ -388,6 +489,13 @@ function cloneStatusEffectParams(
 
     case "damage_chain":
       return cloneDamageChainStatusParams(params);
+
+    case "blessing":
+      return cloneBlessingStatusParams(params);
+
+    case "attack_change":
+    case "speed_change":
+      return cloneStatChangeStatusParams(params);
   }
 }
 
@@ -855,4 +963,432 @@ function cloneDamageChainStatusParams(
     type: "damage_chain",
     multiplier: params.multiplier,
   };
+}
+
+function isBlessingStatusEffect(
+  statusEffect: BattleStatusEffect,
+): statusEffect is BlessingBattleStatusEffect {
+  return (
+    statusEffect.id === "blessing" &&
+    statusEffect.params?.type === "blessing" &&
+    typeof statusEffect.params.healAmount === "number"
+  );
+}
+
+export function getBlessingStatusEffect(
+  unit: BattleUnit,
+): BlessingBattleStatusEffect | null {
+  return unit.statusEffects.find(isBlessingStatusEffect) ?? null;
+}
+
+function cloneBlessingStatusParams(
+  params: BlessingStatusParams,
+): BlessingStatusParams {
+  if (params.healAmount !== undefined) {
+    return {
+      type: "blessing",
+      healAmount: params.healAmount,
+    };
+  }
+
+  return {
+    type: "blessing",
+    attackMultiplier: params.attackMultiplier,
+  };
+}
+
+function resolveBlessingHealAmount(input: AddStatusEffectInput): number | null {
+  const params = input.params?.type === "blessing" ? input.params : undefined;
+
+  if (!params) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への加護付与に必要な回復量が設定されていません。`,
+    );
+
+    return null;
+  }
+
+  /**
+   * 固定回復量。
+   */
+  if (params.healAmount !== undefined) {
+    return Math.max(0, Math.floor(params.healAmount));
+  }
+
+  /**
+   * アイテム由来では倍率指定を禁止する。
+   */
+  if (input.sourceSkillId.startsWith("item:")) {
+    input.state.logs.unshift(
+      "アイテムによる加護にはattackMultiplierを指定できません。",
+    );
+
+    return null;
+  }
+
+  const sourceUnit = getBattleUnitByInstanceId(
+    input.state,
+    input.sourceUnitInstanceId,
+  );
+
+  if (!sourceUnit) {
+    input.state.logs.unshift("加護の回復量を計算する付与者が見つかりません。");
+
+    return null;
+  }
+
+  return Math.max(
+    0,
+    Math.floor(getEffectiveAttack(sourceUnit) * params.attackMultiplier),
+  );
+}
+
+function addBlessingStatusEffect(input: AddStatusEffectInput): void {
+  const duration = input.duration ?? getDefaultStatusDuration("blessing");
+
+  const category = resolveAppliedStatusEffectCategory(
+    "blessing",
+    input.category,
+  );
+
+  const healAmount = resolveBlessingHealAmount(input);
+
+  if (healAmount === null) {
+    return;
+  }
+
+  const existing = getBlessingStatusEffect(input.target);
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: "blessing",
+      remainingTurns: duration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: {
+        type: "blessing",
+        healAmount,
+      },
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} は回復量${healAmount}の加護を得た。`,
+    );
+
+    return;
+  }
+
+  const existingHealAmount = existing.params.healAmount;
+
+  const shouldReplace =
+    healAmount > existingHealAmount ||
+    (healAmount === existingHealAmount && duration > existing.remainingTurns);
+
+  if (!shouldReplace) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} の既存の加護は新しい加護より強かった。`,
+    );
+
+    return;
+  }
+
+  const beforeHealAmount = existingHealAmount;
+
+  const beforeDuration = existing.remainingTurns;
+
+  existing.remainingTurns = duration;
+
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
+  existing.sourceSkillId = input.sourceSkillId;
+
+  existing.category = category;
+
+  existing.params = {
+    type: "blessing",
+    healAmount,
+  };
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の加護が回復量${beforeHealAmount}・${beforeDuration}ターンから、回復量${healAmount}・${duration}ターンに更新された。`,
+  );
+}
+
+function addCurseStatusEffect(input: AddStatusEffectInput): void {
+  const duration = input.duration ?? getDefaultStatusDuration("curse");
+
+  const normalizedDuration = Math.max(0, Math.floor(duration));
+
+  const category = resolveAppliedStatusEffectCategory("curse", input.category);
+
+  const existing = input.target.statusEffects.find((statusEffect) => {
+    return statusEffect.id === "curse";
+  });
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: "curse",
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: undefined,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} は呪いを受けた。`,
+    );
+
+    return;
+  }
+
+  /**
+   * 呪いは短い継続ターンを優先する。
+   */
+  if (normalizedDuration >= existing.remainingTurns) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} はすでにより強い呪いを受けている。`,
+    );
+
+    return;
+  }
+
+  const beforeDuration = existing.remainingTurns;
+
+  existing.remainingTurns = normalizedDuration;
+
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
+  existing.sourceSkillId = input.sourceSkillId;
+
+  existing.category = category;
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の呪いの残りターンが ${beforeDuration} から ${normalizedDuration} に短縮された。`,
+  );
+}
+
+function applyBlessingAtActionEnd(state: BattleState, unit: BattleUnit): void {
+  const blessing = getBlessingStatusEffect(unit);
+
+  if (!blessing) {
+    return;
+  }
+
+  const healingResult = applyHealing({
+    state,
+    healer: unit,
+    target: unit,
+    amount: blessing.params.healAmount,
+    sourceType: "status_effect",
+  });
+
+  if (healingResult.invalidTarget) {
+    return;
+  }
+
+  if (healingResult.blocked) {
+    state.logs.unshift(
+      `${unit.definition.name} は回復無効により加護の効果でHPを回復できなかった。`,
+    );
+
+    return;
+  }
+
+  if (healingResult.actualAmount <= 0) {
+    state.logs.unshift(
+      `${unit.definition.name} は加護の効果を受けたが、HPは回復しなかった。`,
+    );
+
+    return;
+  }
+
+  state.logs.unshift(
+    `${unit.definition.name} は加護の効果でHPが ${healingResult.actualAmount} 回復した。`,
+  );
+}
+
+function applyPoisonStatusAtActionEnd(
+  state: BattleState,
+  unit: BattleUnit,
+): void {
+  if (hasStatusEffect(unit, "strong_poison")) {
+    applyPoisonLikeEffect(state, unit, 0.2, "猛毒");
+
+    return;
+  }
+
+  if (hasStatusEffect(unit, "poison")) {
+    applyPoisonLikeEffect(state, unit, 0.1, "毒");
+  }
+}
+
+function isMatchingStatChangeParams(
+  statusEffectId: "attack_change" | "speed_change",
+  params: StatusEffectParams | undefined,
+): params is StatChangeStatusParams {
+  return params?.type === statusEffectId;
+}
+
+function cloneStatChangeStatusParams(
+  params: StatChangeStatusParams,
+): StatChangeStatusParams {
+  return {
+    type: params.type,
+    change: {
+      kind: params.change.kind,
+      value: params.change.value,
+    },
+    stackingMode: params.stackingMode ?? "same_skill",
+  };
+}
+
+function getStatChangeLogValue(params: StatChangeStatusParams): string {
+  if (params.change.kind === "flat") {
+    return params.change.value >= 0
+      ? `+${params.change.value}`
+      : `${params.change.value}`;
+  }
+
+  return `×${params.change.value}`;
+}
+
+function addStatChangeStatusEffect(input: AddStatusEffectInput): void {
+  if (
+    input.statusEffectId !== "attack_change" &&
+    input.statusEffectId !== "speed_change"
+  ) {
+    return;
+  }
+
+  if (!isMatchingStatChangeParams(input.statusEffectId, input.params)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への${getStatusEffectName(
+        input.statusEffectId,
+      )}付与に必要な変化量が設定されていません。`,
+    );
+    return;
+  }
+
+  if (!Number.isFinite(input.params.change.value)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への${getStatusEffectName(
+        input.statusEffectId,
+      )}の変化量が不正です。`,
+    );
+    return;
+  }
+
+  const duration =
+    input.duration ?? getDefaultStatusDuration(input.statusEffectId);
+
+  const normalizedDuration = Math.max(0, Math.trunc(duration));
+
+  const category = resolveAppliedStatusEffectCategory(
+    input.statusEffectId,
+    input.category,
+  );
+
+  const incomingParams = cloneStatChangeStatusParams(input.params);
+
+  const stackingMode = incomingParams.stackingMode ?? "same_skill";
+
+  /**
+   * always_stackでは既存状態を一切検索せず、
+   * 必ず新しいインスタンスとして末尾へ追加する。
+   */
+  if (stackingMode === "always_stack") {
+    input.target.statusEffects.push({
+      id: input.statusEffectId,
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に${getStatusEffectName(
+        input.statusEffectId,
+      )}${getStatChangeLogValue(incomingParams)}が付与された。`,
+    );
+
+    return;
+  }
+
+  /**
+   * same_skillでは、
+   * 同じ状態異常IDかつ同じ付与元技IDのものだけ
+   * 更新対象とする。
+   *
+   * always_stackによって同じ技IDの状態が複数ある場合も
+   * 考えられるが、same_skillによる再付与では
+   * 最初に見つかったものを更新する。
+   */
+  const existing = input.target.statusEffects.find((statusEffect) => {
+    return (
+      statusEffect.id === input.statusEffectId &&
+      statusEffect.sourceSkillId === input.sourceSkillId
+    );
+  });
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: input.statusEffectId,
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に${getStatusEffectName(
+        input.statusEffectId,
+      )}${getStatChangeLogValue(incomingParams)}が付与された。`,
+    );
+
+    return;
+  }
+
+  const beforeDuration = existing.remainingTurns;
+
+  const beforeValue =
+    existing.params &&
+    isMatchingStatChangeParams(input.statusEffectId, existing.params)
+      ? getStatChangeLogValue(existing.params)
+      : "未設定";
+
+  /**
+   * 継続ターンは長い方を採用する。
+   */
+  existing.remainingTurns = Math.max(
+    existing.remainingTurns,
+    normalizedDuration,
+  );
+
+  /**
+   * 変化量、分類、付与者は新しい付与内容へ更新する。
+   *
+   * statusEffects配列内の位置は変えないため、
+   * 最初に付与された計算順が維持される。
+   */
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+  existing.category = category;
+  existing.params = incomingParams;
+
+  /**
+   * sourceSkillIdは一致しているが、
+   * 新しい値を明示的に再代入しておく。
+   */
+  existing.sourceSkillId = input.sourceSkillId;
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の${getStatusEffectName(
+      input.statusEffectId,
+    )}が${beforeValue}・${beforeDuration}ターンから、${getStatChangeLogValue(
+      incomingParams,
+    )}・${existing.remainingTurns}ターンに更新された。`,
+  );
 }

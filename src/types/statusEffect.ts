@@ -16,7 +16,11 @@ export type StatusEffectId =
   | "frostbite"
   | "counter"
   | "charged_attack"
-  | "damage_chain";
+  | "damage_chain"
+  | "blessing"
+  | "curse"
+  | "attack_change"
+  | "speed_change";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -40,7 +44,11 @@ export type StatusEffectParams =
   | CounterStatusParams
   | ChargedAttackStatusParams
   | FrostbiteStatusParams
-  | DamageChainStatusParams;
+  | DamageChainStatusParams
+  | BlessingStatusParams
+  | AppliedBlessingStatusParams
+  | AttackChangeStatusParams
+  | SpeedChangeStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -162,5 +170,110 @@ export interface DamageChainStatusParams {
    */
   multiplier: number;
 }
+
+export type BlessingStatusParams =
+  | {
+      type: "blessing";
+
+      /**
+       * 毎回の回復量を直接指定する。
+       */
+      healAmount: number;
+
+      attackMultiplier?: never;
+    }
+  | {
+      type: "blessing";
+
+      /**
+       * 付与者の戦闘中攻撃力に乗算する。
+       *
+       * 例:
+       * 0.5 = 攻撃力の50%
+       */
+      attackMultiplier: number;
+
+      healAmount?: never;
+    };
+
+export interface AppliedBlessingStatusParams {
+  type: "blessing";
+  healAmount: number;
+}
+
+export type BlessingBattleStatusEffect = BattleStatusEffect & {
+  id: "blessing";
+  params: {
+    type: "blessing";
+    healAmount: number;
+  };
+};
+
+/**
+ * 能力変化の重複方式。
+ *
+ * same_skill:
+ *   同じ能力変化IDかつ同じ付与元技IDなら、
+ *   既存インスタンスを更新する。
+ *
+ * always_stack:
+ *   付与元技IDを問わず、必ず別インスタンスとして追加する。
+ */
+export type StatChangeStackingMode = "same_skill" | "always_stack";
+
+/**
+ * 攻撃変化・素早さ変化で指定する演算。
+ *
+ * flat:
+ *   現在値へvalueを加算する。
+ *
+ * multiplier:
+ *   現在値へvalueを乗算する。
+ */
+export type StatChangeOperation =
+  | {
+      kind: "flat";
+      value: number;
+    }
+  | {
+      kind: "multiplier";
+      value: number;
+    };
+
+export interface AttackChangeStatusParams {
+  type: "attack_change";
+  change: StatChangeOperation;
+  /**
+   * 未指定時はsame_skill。
+   */
+  stackingMode?: StatChangeStackingMode;
+}
+
+export interface SpeedChangeStatusParams {
+  type: "speed_change";
+  change: StatChangeOperation;
+  /**
+   * 未指定時はsame_skill。
+   */
+  stackingMode?: StatChangeStackingMode;
+}
+
+export type StatChangeStatusParams =
+  | AttackChangeStatusParams
+  | SpeedChangeStatusParams;
+
+export type AttackChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "attack_change";
+  params: AttackChangeStatusParams;
+};
+
+export type SpeedChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "speed_change";
+  params: SpeedChangeStatusParams;
+};
+
+export type StatChangeBattleStatusEffect =
+  | AttackChangeBattleStatusEffect
+  | SpeedChangeBattleStatusEffect;
 
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";

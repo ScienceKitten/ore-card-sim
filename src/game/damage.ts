@@ -7,6 +7,7 @@ import {
 } from "../data/attributeChart";
 import { randomVariance } from "../utils/random";
 import type { EffectOrigin } from "../types/effectExecution";
+import { getEffectiveAttack } from "./statChanges";
 
 const DAMAGE_MIN = 1;
 const DAMAGE_MAX = 999;
@@ -81,7 +82,7 @@ export function calculateDamage(
 
   const multiplier = input.action.multiplier;
 
-  const attackValue = input.attacker.attack;
+  const attackValue = getEffectiveAttack(input.attacker);
 
   const attributeMultiplier = calculateAttributeMultiplier(
     input.skill.attributes,

@@ -1,5 +1,6 @@
 import type { BattleState, BattleUnit } from "../types/battle";
 import { addSpecialGauge } from "./battleQueries";
+import { getEffectiveSpeed } from "./statChanges";
 
 export function getAllBattleUnits(state: BattleState): BattleUnit[] {
   return [...state.allyTeam.units, ...state.enemyTeam.units];
@@ -14,12 +15,6 @@ export function hasActedThisTurn(
   unit: BattleUnit,
 ): boolean {
   return state.actedUnitInstanceIds.includes(unit.instanceId);
-}
-
-export function getEffectiveSpeed(unit: BattleUnit): number {
-  let speed = unit.speed;
-
-  return speed;
 }
 
 function pickRandom<T>(items: T[]): T {

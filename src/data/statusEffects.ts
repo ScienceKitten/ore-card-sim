@@ -93,4 +93,30 @@ export const statusEffectDefinitions: Record<
     category: "harmful",
     defaultDuration: 99,
   },
+  blessing: {
+    id: "blessing",
+    name: "加護",
+    category: "benefit",
+    defaultDuration: 99,
+  },
+
+  curse: {
+    id: "curse",
+    name: "呪い",
+    category: "harmful",
+    defaultDuration: 2,
+  },
+  attack_change: {
+    id: "attack_change",
+    name: "攻撃変化",
+    category: "benefit",
+    defaultDuration: 99,
+  },
+
+  speed_change: {
+    id: "speed_change",
+    name: "素早さ変化",
+    category: "benefit",
+    defaultDuration: 99,
+  },
 };

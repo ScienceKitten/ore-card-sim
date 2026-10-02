@@ -53,4 +53,20 @@ export const items: ItemDefinition[] = [
       },
     ],
   },
+  {
+    id: "blessing_charm",
+    name: "加護のお守り",
+
+    statBonus: {},
+
+    startStatusEffects: [
+      {
+        statusEffectId: "blessing",
+        params: {
+          type: "blessing",
+          healAmount: 10,
+        },
+      },
+    ],
+  },
 ];

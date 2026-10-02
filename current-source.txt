@@ -1,4 +1,138 @@
 ==================================================
+PROJECT SOURCE EXPORT
+==================================================
+Project root: C:\Development\webweb\webgame-ts
+Exported at: 2026-10-02 03:49:26
+Source file count: 46
+
+==================================================
+PROJECT FILE STRUCTURE
+==================================================
+
+[FILE] .gitignore
+[FILE] index.html
+[FILE] package.json
+[FILE] package-lock.json
+[DIR]  public/
+[FILE] public/favicon.svg
+[FILE] public/icons.svg
+[FILE] README.md
+[DIR]  src/
+[FILE] src/App.vue
+[DIR]  src/assets/
+[FILE] src/assets/hero.png
+[FILE] src/assets/vite.svg
+[FILE] src/assets/vue.svg
+[DIR]  src/components/
+[FILE] src/components/HelloWorld.vue
+[FILE] src/components/UnitSelectScreen.vue
+[DIR]  src/data/
+[FILE] src/data/attributeChart.ts
+[FILE] src/data/items.ts
+[FILE] src/data/skills.ts
+[FILE] src/data/statusEffects.ts
+[FILE] src/data/teamBonuses.ts
+[FILE] src/data/units.ts
+[DIR]  src/game/
+[FILE] src/game/actionLifecycle.ts
+[FILE] src/game/battleDamage.ts
+[FILE] src/game/battleQueries.ts
+[FILE] src/game/counter.ts
+[FILE] src/game/createBattleState.ts
+[FILE] src/game/damage.ts
+[FILE] src/game/effectHandlers.ts
+[FILE] src/game/executeSkill.ts
+[FILE] src/game/healing.ts
+[FILE] src/game/skillExecution.ts
+[FILE] src/game/startTurnEffect.ts
+[FILE] src/game/statusEffects.ts
+[FILE] src/game/targetSelectors.ts
+[FILE] src/game/teamBonus.ts
+[FILE] src/game/turnManager.ts
+[FILE] src/game/validateGameData.ts
+[FILE] src/main.ts
+[FILE] src/style.css
+[DIR]  src/types/
+[FILE] src/types/battle.ts
+[FILE] src/types/common.ts
+[FILE] src/types/counter.ts
+[FILE] src/types/effectExecution.ts
+[FILE] src/types/item.ts
+[FILE] src/types/setup.ts
+[FILE] src/types/skill.ts
+[FILE] src/types/skillExecution.ts
+[FILE] src/types/statusEffect.ts
+[FILE] src/types/teamBonus.ts
+[FILE] src/types/unit.ts
+[DIR]  src/utils/
+[FILE] src/utils/random.ts
+[FILE] tsconfig.app.json
+[FILE] tsconfig.json
+[FILE] tsconfig.node.json
+[FILE] vite.config.ts
+
+==================================================
+SOURCE FILE CONTENTS
+==================================================
+
+==================================================
+FILE: index.html
+==================================================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>orecardsim</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+
+
+==================================================
+FILE: package.json
+==================================================
+{
+  "name": "webgame-ts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "tailwindcss": "^4.3.0",
+    "vue": "^3.5.34"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/tsconfig": "^0.9.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12",
+    "vue-tsc": "^3.2.8"
+  }
+}
+
+
+==================================================
+FILE: README.md
+==================================================
+# Vue 3 + TypeScript + Vite
+
+This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+
+Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+
+
+==================================================
 FILE: src/App.vue
 ==================================================
 <script setup lang="ts">
@@ -1672,6 +1806,22 @@ export const items: ItemDefinition[] = [
       },
     ],
   },
+  {
+    id: "blessing_charm",
+    name: "加護のお守り",
+
+    statBonus: {},
+
+    startStatusEffects: [
+      {
+        statusEffectId: "blessing",
+        params: {
+          type: "blessing",
+          healAmount: 10,
+        },
+      },
+    ],
+  },
 ];
 
 
@@ -2893,6 +3043,23 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  ice_breath: {
+    id: "ice_breath",
+    name: "アイスブレス",
+    attributes: ["ice"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.2,
+          },
+        ],
+      },
+    ],
+  },
   diamonddust_breath: {
     id: "diamonddust_breath",
     name: "ダイヤモンドダストの息",
@@ -3414,6 +3581,30 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  mystical_white_cocoon: {
+    id: "mystical_white_cocoon",
+    name: "輝く神秘の繭",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "all_allies",
+          includeSelf: true,
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "blessing",
+            params: {
+              type: "blessing",
+              attackMultiplier: 0.6,
+            },
+          },
+        ],
+      },
+    ],
+  },
   senrinbou: {
     id: "senrinbou",
     name: "千隣亡",
@@ -3427,15 +3618,11 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 2.2,
           },
-          {
-            type: "apply_status_effect",
-            statusEffectId: "poison",
-            chance: 0.1,
-          },
         ],
       },
     ],
   },
+
   wakugouku: {
     id: "wakugouku",
     name: "惑業苦",
@@ -3448,6 +3635,37 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.5,
+          },
+        ],
+      },
+    ],
+  },
+  zigokudou: {
+    id: "zigokudou",
+    name: "地獄道",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "single_enemy",
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "damage_chain",
+            params: {
+              type: "damage_chain",
+              multiplier: 1,
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "extra_action",
           },
         ],
       },
@@ -3505,6 +3723,115 @@ export const skills: Record<string, SkillDefinition> = {
                 multiplier: 100000,
               },
             ],
+          },
+        ],
+      },
+    ],
+  },
+  poison_gus: {
+    id: "poison_gus",
+    name: "毒ガス",
+    attributes: ["poison"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "conditional_action",
+            conditions: {
+              statusEffectIds: ["poison"],
+            },
+            matchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "strong_poison",
+                chance: 0.6,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "poison",
+                chance: 0.6,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        target: { type: "all_allies" },
+        actions: [
+          {
+            type: "conditional_action",
+            conditions: {
+              statusEffectIds: ["poison"],
+            },
+            matchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "strong_poison",
+                chance: 0.6,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "poison",
+                chance: 0.6,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  suicide_attack: {
+    id: "suicide_attack",
+    name: "玉砕攻撃",
+    attributes: ["poison"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1000,
+          },
+        ],
+      },
+    ],
+  },
+  fetter_of_causality: {
+    id: "fetter_of_causality",
+    name: "因果の枷",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.47,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "heal_block",
           },
         ],
       },
@@ -3599,6 +3926,31 @@ export const statusEffectDefinitions: Record<
     category: "harmful",
     defaultDuration: 3,
   },
+  damage_chain: {
+    id: "damage_chain",
+    name: "ダメージチェーン",
+    category: "harmful",
+    defaultDuration: 2,
+  },
+  strong_poison: {
+    id: "strong_poison",
+    name: "猛毒",
+    category: "harmful",
+    defaultDuration: 99,
+  },
+  blessing: {
+    id: "blessing",
+    name: "加護",
+    category: "benefit",
+    defaultDuration: 99,
+  },
+
+  curse: {
+    id: "curse",
+    name: "呪い",
+    category: "harmful",
+    defaultDuration: 2,
+  },
 };
 
 
@@ -3663,6 +4015,27 @@ FILE: src/data/units.ts
 import type { UnitDefinition } from "../types/unit";
 
 export const units: UnitDefinition[] = [
+  {
+    id: "test_slime",
+    name: "テストスライム",
+    maxHp: 999,
+    attack: 10,
+    speed: 99,
+    species: "slime",
+    attribute: "none",
+    gender: "none",
+    reels: [
+      [
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+        "test_ex_gauge",
+      ],
+    ],
+    specialSkillId: "test_counter",
+  },
   {
     id: "zeno_dragon_water",
     name: "我竜ゼノドラゴン（水）",
@@ -4013,6 +4386,37 @@ export const units: UnitDefinition[] = [
     specialSkillId: "true_crimson_flare",
   },
   {
+    id: "scarlet_dragon_stable",
+    name: "スカーレッド・ドラゴン（安打）",
+    maxHp: 420,
+    attack: 89,
+    speed: 47,
+    species: "dragon",
+    attribute: "fire",
+    gender: "none",
+    reels: [
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "fire_breath",
+        "fire_breath",
+        "fire_breath",
+        "fire_breath",
+        "fire_breath",
+        "fire_breath",
+      ],
+      ["attack", "fire_breath", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "miss",
+        "fire_breath_ultra",
+        "fire_breath_ultra",
+        "fire_breath_ultra",
+        "fire_breath_ultra",
+        "fire_breath_ultra",
+      ],
+    ],
+    specialSkillId: "true_crimson_flare",
+  },
+  {
     id: "forbidden_huldrefolk",
     name: "禁断のフルドフォルク",
     maxHp: 291,
@@ -4225,6 +4629,44 @@ export const units: UnitDefinition[] = [
       ["tackle", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       ["miss", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       ["miss", "heavy_tackle", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "diamonddust_breath",
+        "diamonddust_breath",
+        "diamonddust_breath",
+        "diamonddust_breath",
+        "diamonddust_breath",
+        "diamonddust_breath",
+      ],
+    ],
+    specialSkillId: "true_absolute_zero_scream",
+  },
+  {
+    id: "grand_blue_dragon_stable",
+    name: "グランブルー・ドラゴン（安打）",
+    maxHp: 430,
+    attack: 78,
+    speed: 52,
+    species: "dragon",
+    attribute: "water",
+    gender: "none",
+    reels: [
+      ["tackle", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "ice_breath",
+        "ice_breath",
+        "ice_breath",
+        "ice_breath",
+        "ice_breath",
+        "reel_up",
+      ],
+      [
+        "ice_breath",
+        "ice_breath",
+        "ice_breath",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+      ],
       [
         "diamonddust_breath",
         "diamonddust_breath",
@@ -4466,8 +4908,8 @@ export const units: UnitDefinition[] = [
     specialGaugeConsumption: 2,
   },
   {
-    id: "guri",
-    name: "グリ",
+    id: "guri_dark",
+    name: "グリ（ダーク）",
     maxHp: 69,
     attack: 46,
     speed: 57,
@@ -4486,6 +4928,50 @@ export const units: UnitDefinition[] = [
     ],
     specialSkillId: "death_roulette_II",
     specialGaugeConsumption: 4,
+  },
+  {
+    id: "guri_attack",
+    name: "グリ（こうげき）",
+    maxHp: 69,
+    attack: 46,
+    speed: 57,
+    species: "undead",
+    attribute: "wind",
+    gender: "none",
+    reels: [
+      [
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+      ],
+    ],
+    specialSkillId: "death_roulette_II",
+    specialGaugeConsumption: 4,
+  },
+  {
+    id: "arura",
+    name: "アルラ",
+    maxHp: 105,
+    attack: 52,
+    speed: 45,
+    species: "undead",
+    attribute: "earth",
+    gender: "none",
+    reels: [
+      [
+        "miss",
+        "ex_plus_2",
+        "poison_gus",
+        "poison_gus",
+        "poison_gus",
+        "poison_gus",
+      ],
+    ],
+    specialSkillId: "suicide_attack",
+    specialGaugeConsumption: 6,
   },
   {
     id: "white_dragon",
@@ -4516,7 +5002,7 @@ export const units: UnitDefinition[] = [
         "holy_breath",
       ],
     ],
-    specialSkillId: "holy_breath",
+    specialSkillId: "mystical_white_cocoon",
   },
   {
     id: "auslese_demon_king",
@@ -4540,7 +5026,75 @@ export const units: UnitDefinition[] = [
         "senrinbou",
       ],
     ],
-    specialSkillId: "senrinbou",
+    specialSkillId: "zigokudou",
+    defaultItemId: "poison_orb",
+  },
+  {
+    id: "thanatos_unmovable_reaper",
+    name: "不動の死神タナト（風）",
+    maxHp: 302,
+    attack: 78,
+    speed: 82,
+    species: "undead",
+    attribute: "wind",
+    gender: "male",
+    reels: [
+      [
+        "miss",
+        "fetter_of_causality",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+      ],
+      [
+        "miss",
+        "fetter_of_causality",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+      ],
+      [
+        "miss",
+        "fetter_of_causality",
+        "fetter_of_causality",
+        "fetter_of_causality",
+        "fetter_of_causality",
+        "fetter_of_causality",
+      ],
+      [
+        "attack_power1",
+        "fetter_of_causality",
+        "fetter_of_causality",
+        "fetter_of_causality",
+        "fetter_of_causality",
+        "fetter_of_causality",
+      ],
+    ],
+    specialSkillId: "miss",
+  },
+  {
+    id: "bone",
+    name: "ボーン",
+    maxHp: 136,
+    attack: 42,
+    speed: 5,
+    species: "dragon",
+    attribute: "earth",
+    gender: "none",
+    reels: [
+      [
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+        "attack_power1",
+      ],
+    ],
+    specialSkillId: "attack",
+    specialGaugeConsumption: 6,
   },
   {
     id: "Leonard_demon_king_demon",
@@ -4632,27 +5186,7 @@ export const units: UnitDefinition[] = [
     ],
     specialSkillId: "test_counter",
   },
-  {
-    id: "test_slime",
-    name: "テストスライム",
-    maxHp: 999,
-    attack: 10,
-    speed: 99,
-    species: "slime",
-    attribute: "none",
-    gender: "none",
-    reels: [
-      [
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-        "test_ex_gauge",
-      ],
-    ],
-    specialSkillId: "test_counter",
-  },
+
   {
     id: "test_mage",
     name: "テストメイジ",
@@ -4813,6 +5347,313 @@ export function resolveUnableToActActiveUnits(state: BattleState): void {
 
 
 ==================================================
+FILE: src/game/battleDamage.ts
+==================================================
+import type { BattleState, BattleUnit } from "../types/battle";
+import type { EffectOrigin } from "../types/effectExecution";
+import type { DamageResolutionState } from "../types/skillExecution";
+import {
+  addSpecialGauge,
+  getAllBattleUnits,
+  getBattleUnitByInstanceId,
+  getOwnTeam,
+  updateBattleResult,
+} from "./battleQueries";
+import {
+  getChargedAttackStatusEffect,
+  removeStatusEffectInstance,
+} from "./statusEffects";
+
+export interface ApplyBattleDamageInput {
+  state: BattleState;
+  target: BattleUnit;
+  amount: number;
+  origin: EffectOrigin;
+
+  /**
+   * この処理解決単位で共有する死亡保留情報。
+   */
+  damageResolution: DamageResolutionState;
+
+  /**
+   * このダメージで被ダメージ側の必殺技ゲージを増やすか。
+   */
+  grantsSpecialGauge: boolean;
+
+  damageMessage?: ((damage: number) => string) | null;
+}
+
+export interface AppliedBattleDamageResult {
+  target: BattleUnit;
+  calculatedDamage: number;
+  actualDamage: number;
+  beforeHp: number;
+  afterHp: number;
+  newlyReachedZeroHp: boolean;
+}
+
+export function applyBattleDamage(
+  input: ApplyBattleDamageInput,
+): AppliedBattleDamageResult {
+  const calculatedDamage = Math.max(0, Math.floor(input.amount));
+
+  const beforeHp = input.target.currentHp;
+
+  /**
+   * 処理解決開始時点で戦闘不能だったユニットには
+   * ダメージを適用しない。
+   */
+  if (
+    !canReceiveDeferredDamage(input.target, input.damageResolution) ||
+    calculatedDamage <= 0
+  ) {
+    return {
+      target: input.target,
+      calculatedDamage,
+      actualDamage: 0,
+      beforeHp,
+      afterHp: input.target.currentHp,
+      newlyReachedZeroHp: false,
+    };
+  }
+
+  input.target.currentHp = Math.max(
+    0,
+    input.target.currentHp - calculatedDamage,
+  );
+
+  const actualDamage = beforeHp - input.target.currentHp;
+
+  /**
+   * HP0の対象への追加ヒットでもログを出す。
+   *
+   * actualDamageは0でも、calculatedDamageは
+   * 通常の計算結果を保持する。
+   */
+  if (input.damageMessage) {
+    input.state.logs.unshift(input.damageMessage(calculatedDamage));
+  }
+
+  /**
+   * HP0後の追加ヒットでも、
+   * 仕様どおり被ダメージゲージを増加させる。
+   */
+  if (input.grantsSpecialGauge) {
+    addSpecialGauge(getOwnTeam(input.state, input.target), 1);
+  }
+
+  /**
+   * すべてのダメージでチャージ攻撃解除を判定する。
+   */
+  cancelChargedAttackByDamage(input.state, input.target, calculatedDamage);
+
+  const newlyReachedZeroHp = beforeHp > 0 && input.target.currentHp === 0;
+
+  if (newlyReachedZeroHp) {
+    input.damageResolution.pendingDefeatUnitInstanceIds.add(
+      input.target.instanceId,
+    );
+  }
+
+  /**
+   * ダメージチェーンは通常技によるダメージだけで発動。
+   *
+   * HP0後の追加ヒットでも発動する。
+   */
+  if (input.origin.type === "skill") {
+    propagateDamageChain(
+      input.state,
+      input.target,
+      calculatedDamage,
+      input.damageResolution,
+    );
+  }
+
+  return {
+    target: input.target,
+    calculatedDamage,
+    actualDamage,
+    beforeHp,
+    afterHp: input.target.currentHp,
+    newlyReachedZeroHp,
+  };
+}
+
+function cancelChargedAttackByDamage(
+  state: BattleState,
+  target: BattleUnit,
+  damage: number,
+): void {
+  const chargedAttack = getChargedAttackStatusEffect(target);
+
+  if (!chargedAttack) {
+    return;
+  }
+
+  const cancelDamage = chargedAttack.params.cancelDamage ?? 0;
+
+  if (cancelDamage <= 0) {
+    return;
+  }
+
+  /**
+   * 「超える」場合だけ解除する。
+   */
+  if (damage <= cancelDamage) {
+    return;
+  }
+
+  removeStatusEffectInstance(target, chargedAttack);
+
+  state.logs.unshift(
+    `${target.definition.name} のチャージ攻撃はダメージにより解除された。`,
+  );
+}
+
+function getDamageChainStatusEffect(target: BattleUnit) {
+  return target.statusEffects.find((statusEffect) => {
+    return (
+      statusEffect.id === "damage_chain" &&
+      statusEffect.params?.type === "damage_chain"
+    );
+  });
+}
+
+function propagateDamageChain(
+  state: BattleState,
+  damagedUnit: BattleUnit,
+  sourceCalculatedDamage: number,
+  damageResolution: DamageResolutionState,
+): void {
+  const damageChain = getDamageChainStatusEffect(damagedUnit);
+
+  const damageChainParams = damageChain?.params;
+
+  /**
+   * ダメージチェーン状態がない、
+   * paramsがない、または別種類のparamsなら終了する。
+   *
+   * この判定後、damageChainParamsは
+   * DamageChainStatusParams型に絞り込まれる。
+   */
+  if (!damageChainParams || damageChainParams.type !== "damage_chain") {
+    return;
+  }
+
+  const multiplier = Math.max(0, damageChainParams.multiplier);
+
+  const chainDamage = Math.floor(sourceCalculatedDamage * multiplier);
+
+  if (chainDamage <= 0) {
+    return;
+  }
+
+  const ownTeam = getOwnTeam(state, damagedUnit);
+
+  const chainedTargets = ownTeam.units.filter((unit) => {
+    return (
+      unit.instanceId !== damagedUnit.instanceId &&
+      damageResolution.initiallyAliveUnitInstanceIds.has(unit.instanceId)
+    );
+  });
+
+  if (chainedTargets.length === 0) {
+    return;
+  }
+
+  state.logs.unshift(
+    `${damagedUnit.definition.name} のダメージチェーンが発動した。`,
+  );
+
+  for (const target of chainedTargets) {
+    applyBattleDamage({
+      state,
+      target,
+      amount: chainDamage,
+
+      origin: {
+        type: "direct",
+        source: "status_effect",
+      },
+
+      damageResolution,
+
+      grantsSpecialGauge: false,
+
+      damageMessage: (damage) => {
+        return `${target.definition.name} はダメージチェーンで ${damage} ダメージを受けた。`;
+      },
+    });
+  }
+}
+
+export function createDamageResolutionState(
+  state: BattleState,
+): DamageResolutionState {
+  const initiallyAliveUnitInstanceIds = new Set(
+    getAllBattleUnits(state)
+      .filter((unit) => {
+        return unit.currentHp > 0;
+      })
+      .map((unit) => {
+        return unit.instanceId;
+      }),
+  );
+
+  return {
+    initiallyAliveUnitInstanceIds,
+    pendingDefeatUnitInstanceIds: new Set<string>(),
+    defeatGaugeAwardedUnitInstanceIds: new Set<string>(),
+  };
+}
+
+export function canReceiveDeferredDamage(
+  target: BattleUnit,
+  damageResolution: DamageResolutionState,
+): boolean {
+  return damageResolution.initiallyAliveUnitInstanceIds.has(target.instanceId);
+}
+
+export function finalizePendingDefeats(
+  state: BattleState,
+  damageResolution: DamageResolutionState,
+): void {
+  for (const unitInstanceId of damageResolution.pendingDefeatUnitInstanceIds) {
+    const unit = getBattleUnitByInstanceId(state, unitInstanceId);
+
+    if (!unit) {
+      continue;
+    }
+
+    /**
+     * 処理途中で回復してHPが戻った場合は、
+     * 戦闘不能にしない。
+     */
+    if (unit.currentHp > 0) {
+      continue;
+    }
+
+    state.logs.unshift(`${unit.definition.name} は倒れた。`);
+
+    /**
+     * 撃破時ゲージはユニットごとに1回だけ。
+     */
+    if (
+      !damageResolution.defeatGaugeAwardedUnitInstanceIds.has(unit.instanceId)
+    ) {
+      addSpecialGauge(getOwnTeam(state, unit), 1);
+
+      damageResolution.defeatGaugeAwardedUnitInstanceIds.add(unit.instanceId);
+    }
+  }
+
+  damageResolution.pendingDefeatUnitInstanceIds.clear();
+
+  updateBattleResult(state);
+}
+
+
+==================================================
 FILE: src/game/battleQueries.ts
 ==================================================
 import type { BattleState, BattleTeam, BattleUnit } from "../types/battle";
@@ -4909,7 +5750,10 @@ FILE: src/game/counter.ts
 import type { BattleState, BattleUnit } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import type { CounterEvent } from "../types/counter";
-import type { SkillExecutionInfo } from "../types/skillExecution";
+import type {
+  DamageResolutionState,
+  SkillExecutionInfo,
+} from "../types/skillExecution";
 import { getBattleUnitByInstanceId, updateBattleResult } from "./battleQueries";
 import {
   consumeCounterCount,
@@ -4917,6 +5761,10 @@ import {
   getRemainingCounterCount,
 } from "./statusEffects";
 import { applyEffectAction } from "./effectHandlers";
+import {
+  createDamageResolutionState,
+  finalizePendingDefeats,
+} from "./battleDamage";
 
 function makeCounterEventKey(
   attackerInstanceId: string,
@@ -5073,12 +5921,15 @@ export function resolveCounterEvents(
       `${counterUnit.definition.name} のカウンターが発動した！`,
     );
 
+    const damageResolution = createDamageResolutionState(state);
+
     applyCounterActionsToAttacker(
       state,
       counterUnit,
       attacker,
       sourceSkill,
       params.counterActionsToAttacker,
+      damageResolution,
     );
 
     applyCounterActionsToSelf(
@@ -5086,11 +5937,15 @@ export function resolveCounterEvents(
       counterUnit,
       sourceSkill,
       params.counterActionsToSelf,
+      damageResolution,
     );
 
     consumeCounterCount(counterUnit);
 
-    updateBattleResult(state);
+    finalizePendingDefeats(state, damageResolution);
+    if (state.result.status !== "in_progress") {
+      return;
+    }
   }
 
   updateBattleResult(state);
@@ -5102,6 +5957,7 @@ function applyCounterActionsToAttacker(
   attacker: BattleUnit,
   sourceSkill: SkillDefinition,
   actions: EffectAction[],
+  damageResolution: DamageResolutionState,
 ): void {
   for (const action of actions) {
     applyEffectAction(action, [attacker], {
@@ -5113,6 +5969,7 @@ function applyCounterActionsToAttacker(
         source: "counter",
       },
       usedReelSlot: null,
+      damageResolution,
     });
   }
 }
@@ -5122,6 +5979,7 @@ function applyCounterActionsToSelf(
   counterUnit: BattleUnit,
   sourceSkill: SkillDefinition,
   actions: EffectAction[],
+  damageResolution: DamageResolutionState,
 ): void {
   for (const action of actions) {
     applyEffectAction(action, [counterUnit], {
@@ -5133,6 +5991,7 @@ function applyCounterActionsToSelf(
         source: "counter",
       },
       usedReelSlot: null,
+      damageResolution,
     });
   }
 }
@@ -5644,13 +6503,14 @@ import type {
 } from "../types/statusEffect";
 import {
   addStatusEffect,
-  cancelChargedAttackByDamage,
   getStatusEffectName,
   removeStatusEffectsByCondition,
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
 import { applyHealing } from "./healing";
 import type { EffectOrigin } from "../types/effectExecution";
+import { applyBattleDamage } from "./battleDamage";
+import type { DamageResolutionState } from "../types/skillExecution";
 
 interface EffectContext {
   state: BattleState;
@@ -5670,6 +6530,10 @@ interface EffectContext {
   origin: EffectOrigin;
 
   usedReelSlot: UsedReelSlot | null;
+  /**
+   * 一連の技・直接効果内で共有する死亡保留情報。
+   */
+  damageResolution: DamageResolutionState;
 }
 
 export function applyEffectAction(
@@ -5805,8 +6669,6 @@ function applyDamage(
   const results: AppliedDamageResult[] = [];
 
   for (const target of targets) {
-    if (target.currentHp <= 0) continue;
-
     const calculation = calculateDamage({
       attacker: context.actor,
       defender: target,
@@ -5815,24 +6677,30 @@ function applyDamage(
       origin: context.origin,
     });
 
-    const beforeHp = target.currentHp;
-    target.currentHp = Math.max(0, target.currentHp - calculation.damage);
+    /**
+     * HP減少とダメージ副作用を
+     * 共通処理へ委譲する。
+     */
+    const damageResult = applyBattleDamage({
+      state: context.state,
+      target,
+      amount: calculation.damage,
+      origin: context.origin,
+      damageResolution: context.damageResolution,
+      grantsSpecialGauge: true,
 
-    const actualDamage = beforeHp - target.currentHp;
+      damageMessage: (damage) => {
+        return `${target.definition.name} に ${damage} ダメージ。`;
+      },
+    });
 
     results.push({
       target,
       calculatedDamage: calculation.damage,
-      actualDamage,
-      beforeHp,
-      afterHp: target.currentHp,
+      actualDamage: damageResult.actualDamage,
+      beforeHp: damageResult.beforeHp,
+      afterHp: damageResult.afterHp,
     });
-
-    cancelChargedAttackByDamage(context.state, target, calculation.damage);
-
-    context.state.logs.unshift(
-      `${target.definition.name} に ${calculation.damage} ダメージ。`,
-    );
 
     const effectivenessText = getAttributeEffectivenessText(
       calculation.attributeMultiplier,
@@ -5846,14 +6714,10 @@ function applyDamage(
       `属性倍率: x${calculation.attributeMultiplier.toFixed(2)}`,
     );
 
-    const targetTeam =
-      target.side === "ally" ? context.state.allyTeam : context.state.enemyTeam;
-
-    addSpecialGauge(targetTeam, 1);
-
-    if (beforeHp > 0 && target.currentHp === 0) {
-      context.state.logs.unshift(`${target.definition.name} は倒れた。`);
-      addSpecialGauge(targetTeam, 1);
+    if (calculation.undeadCategoryMultiplier !== 1) {
+      context.state.logs.unshift(
+        `アンデッド種族補正: x${calculation.undeadCategoryMultiplier.toFixed(2)}`,
+      );
     }
   }
 
@@ -6254,6 +7118,7 @@ import {
 } from "./targetSelectors";
 import { createSkillExecutionInfo } from "./skillExecution";
 import { randomChoice, rollChance } from "../utils/random";
+import { finalizePendingDefeats } from "./battleDamage";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -6505,10 +7370,7 @@ function executeSkillBody(
 ): void {
   const counterEvents: CounterEvent[] = [];
 
-  const executionInfo: SkillExecutionInfo = createSkillExecutionInfo(
-    actor,
-    source,
-  );
+  const executionInfo = createSkillExecutionInfo(state, actor, source);
 
   executeEffectsFromIndex(
     state,
@@ -6583,7 +7445,13 @@ function executeEffectsFromIndex(
         if (!confusionSuccess) {
           state.logs.unshift("しかし、対象がいなかった。");
 
-          finishSkillAndActorTurn(state, actor, skills, counterEvents);
+          finishSkillAndActorTurn(
+            state,
+            actor,
+            skills,
+            counterEvents,
+            executionInfo,
+          );
 
           return;
         }
@@ -6624,7 +7492,13 @@ function executeEffectsFromIndex(
       if (selectableTargets.length === 0) {
         state.logs.unshift("しかし、対象がいなかった。");
 
-        finishSkillAndActorTurn(state, actor, skills, counterEvents);
+        finishSkillAndActorTurn(
+          state,
+          actor,
+          skills,
+          counterEvents,
+          executionInfo,
+        );
 
         return;
       }
@@ -6685,7 +7559,13 @@ function executeEffectsFromIndex(
     if (effectiveTargetSelector.type !== "none" && targets.length === 0) {
       state.logs.unshift("しかし、対象がいなかった。");
 
-      finishSkillAndActorTurn(state, actor, skills, counterEvents);
+      finishSkillAndActorTurn(
+        state,
+        actor,
+        skills,
+        counterEvents,
+        executionInfo,
+      );
 
       return;
     }
@@ -6702,7 +7582,7 @@ function executeEffectsFromIndex(
     );
   }
 
-  finishSkillAndActorTurn(state, actor, skills, counterEvents);
+  finishSkillAndActorTurn(state, actor, skills, counterEvents, executionInfo);
 }
 
 export function continueSkillWithSelectedTarget(
@@ -6836,6 +7716,7 @@ function applySkillAction(
         type: "skill",
       },
       usedReelSlot,
+      damageResolution: executionInfo.damageResolution,
     });
 
     return;
@@ -6876,6 +7757,7 @@ function applySkillAction(
       type: "skill",
     },
     usedReelSlot,
+    damageResolution: executionInfo.damageResolution,
   });
 }
 
@@ -6884,7 +7766,18 @@ function finishSkillAndActorTurn(
   actor: BattleUnit,
   skills: Record<string, SkillDefinition>,
   counterEvents: CounterEvent[],
+  executionInfo: SkillExecutionInfo,
 ): void {
+  /**
+   * まず技のすべてのダメージを処理し終えてから、
+   * HP0ユニットの死亡を確定する。
+   */
+  finalizePendingDefeats(state, executionInfo.damageResolution);
+
+  if (state.result.status !== "in_progress") {
+    return;
+  }
+
   resolveCounterEvents(state, counterEvents, skills);
 
   if (state.result.status !== "in_progress") {
@@ -7339,20 +8232,16 @@ export function applyHealing(input: ApplyHealingInput): AppliedHealingResult {
 ==================================================
 FILE: src/game/skillExecution.ts
 ==================================================
-import type { BattleUnit } from "../types/battle";
+import type { BattleState, BattleUnit } from "../types/battle";
 import type {
   SkillExecutionInfo,
   SkillExecutionSource,
 } from "../types/skillExecution";
+import { createDamageResolutionState } from "./battleDamage";
 import { getTargetingModeByStatus } from "./statusEffects";
 
-/**
- * 1回の技実行で使用する初期情報を作成する。
- *
- * 対象選択モードは技実行開始時に確定するため、
- * 技の途中で混乱が解除されても、この技の対象選択には影響しない。
- */
 export function createSkillExecutionInfo(
+  state: BattleState,
   actor: BattleUnit,
   source: SkillExecutionSource,
 ): SkillExecutionInfo {
@@ -7362,6 +8251,8 @@ export function createSkillExecutionInfo(
     targetFallbackResolved: false,
     useOriginalTargetingForWholeSkill: false,
     damageTargetInstanceIds: new Set<string>(),
+
+    damageResolution: createDamageResolutionState(state),
   };
 }
 
@@ -7465,18 +8356,27 @@ import type {
 } from "../types/battle";
 import type { SkillId } from "../types/common";
 import type {
+  BlessingBattleStatusEffect,
+  BlessingStatusParams,
   ChargedAttackStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
+  DamageChainStatusParams,
   FrostbiteStatusParams,
   StatusEffectCategory,
   StatusEffectId,
   StatusEffectParams,
 } from "../types/statusEffect";
 import { statusEffectDefinitions } from "../data/statusEffects";
-import { addSpecialGauge, updateBattleResult } from "./battleQueries";
+import { getBattleUnitByInstanceId, updateBattleResult } from "./battleQueries";
 import type { SkillCategory, SkillDefinition } from "../types/skill";
 import type { TargetingMode } from "../types/skillExecution";
+import {
+  applyBattleDamage,
+  createDamageResolutionState,
+  finalizePendingDefeats,
+} from "./battleDamage";
+import { applyHealing } from "./healing";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -7531,15 +8431,74 @@ export interface AddStatusEffectInput {
  * 同じ状態異常がすでにある場合は、残りターン数が長い方を採用する。
  */
 export function addStatusEffect(input: AddStatusEffectInput): void {
+  /**
+   * 加護をアンデッドへ付与する場合、
+   * 継続2ターンの呪いへ変換する。
+   *
+   * 変換後の呪いには再度種族変換を適用しない。
+   */
+  if (
+    input.statusEffectId === "blessing" &&
+    input.target.definition.species === "undead"
+  ) {
+    addCurseStatusEffect({
+      ...input,
+      statusEffectId: "curse",
+      duration: 2,
+      category: undefined,
+      params: undefined,
+    });
+    input.state.logs.unshift(
+      `${input.target.definition.name} はアンデッドのため、加護が呪いに変化した。`,
+    );
+    return;
+  }
+  /**
+   * 呪いをアンデッドへ付与する場合、
+   * 対象自身の攻撃力50%の加護へ変換する。
+   *
+   * 変換後の加護には再度種族変換を適用しない。
+   */
+  if (
+    input.statusEffectId === "curse" &&
+    input.target.definition.species === "undead"
+  ) {
+    const healAmount = Math.max(0, Math.floor(input.target.attack * 0.5));
+    addBlessingStatusEffect({
+      ...input,
+      statusEffectId: "blessing",
+      /**
+       * 変換後の加護はデフォルト99ターン。
+       */
+      duration: getDefaultStatusDuration("blessing"),
+      /**
+       * 変換後は加護のデフォルト分類benefit。
+       */
+      category: undefined,
+      params: {
+        type: "blessing",
+        healAmount,
+      },
+    });
+    input.state.logs.unshift(
+      `${input.target.definition.name} はアンデッドのため、呪いが加護に変化した。`,
+    );
+    return;
+  }
   const canApplyStatusEffect = resolveIncompatibleStatusEffects(input);
-
   if (!canApplyStatusEffect) {
     return;
   }
-
+  if (input.statusEffectId === "blessing") {
+    addBlessingStatusEffect(input);
+    return;
+  }
+  if (input.statusEffectId === "curse") {
+    addCurseStatusEffect(input);
+    return;
+  }
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
-
     return;
   }
 
@@ -7609,71 +8568,176 @@ export function applyActionEndStatusEffects(
 ): void {
   if (unit.currentHp <= 0) {
     decrementStatusDurations(state, unit);
+
     return;
   }
 
-  for (const statusEffect of unit.statusEffects) {
-    switch (statusEffect.id) {
-      case "poison":
-        applyPoisonDamage(state, unit);
-        break;
+  /**
+   * 1. 加護を最初に処理する。
+   */
+  applyBlessingAtActionEnd(state, unit);
 
-      case "paralysis":
-        // 麻痺は行動開始時に処理するので、ここでは何もしない
-        break;
-    }
-
-    if (unit.currentHp <= 0) {
-      break;
-    }
+  /**
+   * 2. 毒・猛毒を処理する。
+   */
+  if (unit.currentHp > 0) {
+    applyPoisonStatusAtActionEnd(state, unit);
   }
+
+  /**
+   * 3. ほかの行動終了時効果があればここで処理。
+   */
+
+  /**
+   * 4. 継続ターンを減らし、
+   *    呪いの期限切れを処理する。
+   */
+  decrementStatusDurations(state, unit);
 
   updateBattleResult(state);
-
-  decrementStatusDurations(state, unit);
 }
 
-function applyPoisonDamage(state: BattleState, unit: BattleUnit): void {
-  if (unit.currentHp <= 0) return;
+function applyPoisonLikeEffect(
+  state: BattleState,
+  unit: BattleUnit,
+  hpRate: number,
+  statusName: string,
+): void {
+  if (unit.currentHp <= 0) {
+    return;
+  }
 
-  const beforeHp = unit.currentHp;
-  const damage = Math.max(1, Math.floor(unit.currentHp * 0.1));
+  const amount = Math.max(1, Math.floor(unit.currentHp * hpRate));
 
-  unit.currentHp = Math.max(0, unit.currentHp - damage);
+  /*
+   * アンデッドは毒・猛毒でダメージを受けず、
+   * 同じ量だけ回復する。
+   */
+  if (unit.definition.species === "undead") {
+    applyPoisonLikeHealing(state, unit, amount, statusName);
+
+    return;
+  }
+
+  applyPoisonLikeDamage(state, unit, amount, statusName);
+}
+
+function applyPoisonLikeDamage(
+  state: BattleState,
+  unit: BattleUnit,
+  amount: number,
+  statusName: string,
+): void {
+  const damageResolution = createDamageResolutionState(state);
+
+  applyBattleDamage({
+    state,
+    target: unit,
+    amount,
+
+    origin: {
+      type: "direct",
+      source: "status_effect",
+    },
+
+    damageResolution,
+
+    /*
+     * 毒・猛毒では被ダメージゲージも
+     * 撃破時ゲージも増やさない。
+     */
+    grantsSpecialGauge: false,
+
+    damageMessage: (damage) => {
+      return `${unit.definition.name} は${statusName}で ${damage} ダメージを受けた。`;
+    },
+  });
+
+  finalizePendingDefeats(state, damageResolution);
+}
+
+function applyPoisonLikeHealing(
+  state: BattleState,
+  unit: BattleUnit,
+  amount: number,
+  statusName: string,
+): void {
+  const healingResult = applyHealing({
+    state,
+    healer: unit,
+    target: unit,
+    amount,
+    sourceType: "status_effect",
+  });
+
+  if (healingResult.invalidTarget) {
+    return;
+  }
+
+  if (healingResult.blocked) {
+    state.logs.unshift(
+      `${unit.definition.name} は回復無効により${statusName}の効果でHPを回復できなかった。`,
+    );
+
+    return;
+  }
+
+  if (healingResult.actualAmount <= 0) {
+    state.logs.unshift(
+      `${unit.definition.name} は${statusName}の効果を受けたが、HPは回復しなかった。`,
+    );
+
+    return;
+  }
 
   state.logs.unshift(
-    `${unit.definition.name} は毒で ${damage} ダメージを受けた。`,
+    `${unit.definition.name} は${statusName}の効果でHPが ${healingResult.actualAmount} 回復した。`,
   );
-
-  const targetTeam = unit.side === "ally" ? state.allyTeam : state.enemyTeam;
-
-  // 攻撃ではないが「ダメージを受けた」としてゲージを増やすならここで加算
-  addSpecialGauge(targetTeam, 1);
-
-  if (beforeHp > 0 && unit.currentHp === 0) {
-    state.logs.unshift(`${unit.definition.name} は毒で倒れた。`);
-    addSpecialGauge(targetTeam, 1);
-  }
 }
 
 function decrementStatusDurations(state: BattleState, unit: BattleUnit): void {
   const expiredNames: string[] = [];
 
+  let curseExpired = false;
+
   for (const statusEffect of unit.statusEffects) {
     statusEffect.remainingTurns -= 1;
+
+    if (statusEffect.id === "curse" && statusEffect.remainingTurns <= 0) {
+      curseExpired = true;
+    }
   }
 
   unit.statusEffects = unit.statusEffects.filter((statusEffect) => {
-    if (statusEffect.remainingTurns <= 0) {
-      expiredNames.push(getStatusEffectName(statusEffect.id));
-      return false;
+    if (statusEffect.remainingTurns > 0) {
+      return true;
     }
 
-    return true;
+    /**
+     * 呪いは専用ログを出すため、
+     * 通常の解除ログには含めない。
+     */
+    if (statusEffect.id !== "curse") {
+      expiredNames.push(getStatusEffectName(statusEffect.id));
+    }
+
+    return false;
   });
 
   for (const name of expiredNames) {
     state.logs.unshift(`${unit.definition.name} の${name}が解けた。`);
+  }
+
+  /**
+   * 呪いはダメージではなく即死。
+   *
+   * ゲージ増加、チャージ解除、
+   * ダメージチェーンなどは発生しない。
+   */
+  if (curseExpired && unit.currentHp > 0) {
+    unit.currentHp = 0;
+
+    state.logs.unshift(`${unit.definition.name} は呪いにより命を失った。`);
   }
 }
 
@@ -7760,6 +8824,11 @@ function cloneStatusEffectParams(
 
     case "frostbite":
       return cloneFrostbiteStatusParams(params);
+
+    case "damage_chain":
+      return cloneDamageChainStatusParams(params);
+    case "blessing":
+      return cloneBlessingStatusParams(params);
   }
 }
 
@@ -7903,28 +8972,6 @@ function cloneChargedAttackStatusParams(
   };
 }
 
-export function cancelChargedAttackByDamage(
-  state: BattleState,
-  unit: BattleUnit,
-  damage: number,
-): void {
-  const chargedStatus = getChargedAttackStatusEffect(unit);
-
-  if (!chargedStatus) return;
-
-  const cancelDamage = chargedStatus.params.cancelDamage ?? 0;
-
-  if (cancelDamage <= 0) return;
-
-  if (damage <= cancelDamage) return;
-
-  removeStatusEffectInstance(unit, chargedStatus);
-
-  state.logs.unshift(
-    `${unit.definition.name} のチャージ攻撃はダメージにより解除された。`,
-  );
-}
-
 /**
  * 技実行開始時の対象選択モードを、
  * 使用者の現在の状態異常から決定する。
@@ -7956,16 +9003,15 @@ function resolveIncompatibleStatusEffects(
 ): boolean {
   const target = input.target;
 
-  /**
-   * 混乱を付与するとき、
-   * すでに持っているチャージ攻撃状態を解除する。
+  /*
+   * 既存の混乱・チャージ攻撃の排他処理
    */
   if (input.statusEffectId === "confusion") {
-    const chargedAttackEffects = target.statusEffects.filter((statusEffect) => {
+    const hasChargedAttack = target.statusEffects.some((statusEffect) => {
       return statusEffect.id === "charged_attack";
     });
 
-    if (chargedAttackEffects.length > 0) {
+    if (hasChargedAttack) {
       target.statusEffects = target.statusEffects.filter((statusEffect) => {
         return statusEffect.id !== "charged_attack";
       });
@@ -7978,16 +9024,46 @@ function resolveIncompatibleStatusEffects(
     return true;
   }
 
-  /**
-   * 混乱中にチャージ攻撃状態を付与しようとしても、
-   * チャージ攻撃状態は残らない。
-   */
   if (
     input.statusEffectId === "charged_attack" &&
     hasStatusEffect(target, "confusion")
   ) {
     input.state.logs.unshift(
       `${target.definition.name} は混乱しているためチャージ攻撃状態になれなかった。`,
+    );
+
+    return false;
+  }
+
+  /*
+   * 猛毒を付与するときは、既存の毒を解除する。
+   */
+  if (input.statusEffectId === "strong_poison") {
+    const hadPoison = hasStatusEffect(target, "poison");
+
+    if (hadPoison) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "poison";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} の毒が猛毒に上書きされた。`,
+      );
+    }
+
+    return true;
+  }
+
+  /*
+   * 猛毒を持つユニットには、
+   * 通常の毒を付与できない。
+   */
+  if (
+    input.statusEffectId === "poison" &&
+    hasStatusEffect(target, "strong_poison")
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} は猛毒状態のため、毒にはならなかった。`,
     );
 
     return false;
@@ -8150,17 +9226,32 @@ export function resolveFrostbiteOnReelSelection(
 
   const damage = Math.max(1, Math.floor(unit.maxHp * 0.2 * level));
 
-  unit.currentHp = Math.max(0, unit.currentHp - damage);
+  const damageResolution = createDamageResolutionState(state);
 
-  /**
-   * 凍傷効果が発動した時点で、
-   * 継続ターンに関係なく凍傷は解除する。
-   */
+  applyBattleDamage({
+    state,
+    target: unit,
+    amount: damage,
+
+    origin: {
+      type: "direct",
+      source: "status_effect",
+    },
+
+    damageResolution,
+
+    grantsSpecialGauge: false,
+
+    damageMessage: null,
+  });
+
   removeStatusEffectInstance(unit, frostbite);
 
   state.logs.unshift(
     `${unit.definition.name} は凍傷で行動に失敗し、${damage}ダメージを受けた。`,
   );
+
+  finalizePendingDefeats(state, damageResolution);
 
   return true;
 }
@@ -8196,6 +9287,271 @@ export function getAppliedStatusEffectCategory(
   return (
     statusEffect.category ?? getDefaultStatusEffectCategory(statusEffect.id)
   );
+}
+
+function cloneDamageChainStatusParams(
+  params: DamageChainStatusParams,
+): DamageChainStatusParams {
+  return {
+    type: "damage_chain",
+    multiplier: params.multiplier,
+  };
+}
+
+function isBlessingStatusEffect(
+  statusEffect: BattleStatusEffect,
+): statusEffect is BlessingBattleStatusEffect {
+  return (
+    statusEffect.id === "blessing" &&
+    statusEffect.params?.type === "blessing" &&
+    typeof statusEffect.params.healAmount === "number"
+  );
+}
+
+export function getBlessingStatusEffect(
+  unit: BattleUnit,
+): BlessingBattleStatusEffect | null {
+  return unit.statusEffects.find(isBlessingStatusEffect) ?? null;
+}
+
+function cloneBlessingStatusParams(
+  params: BlessingStatusParams,
+): BlessingStatusParams {
+  if (params.healAmount !== undefined) {
+    return {
+      type: "blessing",
+      healAmount: params.healAmount,
+    };
+  }
+
+  return {
+    type: "blessing",
+    attackMultiplier: params.attackMultiplier,
+  };
+}
+
+function resolveBlessingHealAmount(input: AddStatusEffectInput): number | null {
+  const params = input.params?.type === "blessing" ? input.params : undefined;
+
+  if (!params) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への加護付与に必要な回復量が設定されていません。`,
+    );
+
+    return null;
+  }
+
+  /**
+   * 固定回復量。
+   */
+  if (params.healAmount !== undefined) {
+    return Math.max(0, Math.floor(params.healAmount));
+  }
+
+  /**
+   * アイテム由来では倍率指定を禁止する。
+   */
+  if (input.sourceSkillId.startsWith("item:")) {
+    input.state.logs.unshift(
+      "アイテムによる加護にはattackMultiplierを指定できません。",
+    );
+
+    return null;
+  }
+
+  const sourceUnit = getBattleUnitByInstanceId(
+    input.state,
+    input.sourceUnitInstanceId,
+  );
+
+  if (!sourceUnit) {
+    input.state.logs.unshift("加護の回復量を計算する付与者が見つかりません。");
+
+    return null;
+  }
+
+  return Math.max(0, Math.floor(sourceUnit.attack * params.attackMultiplier));
+}
+
+function addBlessingStatusEffect(input: AddStatusEffectInput): void {
+  const duration = input.duration ?? getDefaultStatusDuration("blessing");
+
+  const category = resolveAppliedStatusEffectCategory(
+    "blessing",
+    input.category,
+  );
+
+  const healAmount = resolveBlessingHealAmount(input);
+
+  if (healAmount === null) {
+    return;
+  }
+
+  const existing = getBlessingStatusEffect(input.target);
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: "blessing",
+      remainingTurns: duration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: {
+        type: "blessing",
+        healAmount,
+      },
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} は回復量${healAmount}の加護を得た。`,
+    );
+
+    return;
+  }
+
+  const existingHealAmount = existing.params.healAmount;
+
+  const shouldReplace =
+    healAmount > existingHealAmount ||
+    (healAmount === existingHealAmount && duration > existing.remainingTurns);
+
+  if (!shouldReplace) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} の既存の加護は新しい加護より強かった。`,
+    );
+
+    return;
+  }
+
+  const beforeHealAmount = existingHealAmount;
+
+  const beforeDuration = existing.remainingTurns;
+
+  existing.remainingTurns = duration;
+
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
+  existing.sourceSkillId = input.sourceSkillId;
+
+  existing.category = category;
+
+  existing.params = {
+    type: "blessing",
+    healAmount,
+  };
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の加護が回復量${beforeHealAmount}・${beforeDuration}ターンから、回復量${healAmount}・${duration}ターンに更新された。`,
+  );
+}
+
+function addCurseStatusEffect(input: AddStatusEffectInput): void {
+  const duration = input.duration ?? getDefaultStatusDuration("curse");
+
+  const normalizedDuration = Math.max(0, Math.floor(duration));
+
+  const category = resolveAppliedStatusEffectCategory("curse", input.category);
+
+  const existing = input.target.statusEffects.find((statusEffect) => {
+    return statusEffect.id === "curse";
+  });
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: "curse",
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: undefined,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} は呪いを受けた。`,
+    );
+
+    return;
+  }
+
+  /**
+   * 呪いは短い継続ターンを優先する。
+   */
+  if (normalizedDuration >= existing.remainingTurns) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} はすでにより強い呪いを受けている。`,
+    );
+
+    return;
+  }
+
+  const beforeDuration = existing.remainingTurns;
+
+  existing.remainingTurns = normalizedDuration;
+
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+
+  existing.sourceSkillId = input.sourceSkillId;
+
+  existing.category = category;
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の呪いの残りターンが ${beforeDuration} から ${normalizedDuration} に短縮された。`,
+  );
+}
+
+function applyBlessingAtActionEnd(state: BattleState, unit: BattleUnit): void {
+  const blessing = getBlessingStatusEffect(unit);
+
+  if (!blessing) {
+    return;
+  }
+
+  const healingResult = applyHealing({
+    state,
+    healer: unit,
+    target: unit,
+    amount: blessing.params.healAmount,
+    sourceType: "status_effect",
+  });
+
+  if (healingResult.invalidTarget) {
+    return;
+  }
+
+  if (healingResult.blocked) {
+    state.logs.unshift(
+      `${unit.definition.name} は回復無効により加護の効果でHPを回復できなかった。`,
+    );
+
+    return;
+  }
+
+  if (healingResult.actualAmount <= 0) {
+    state.logs.unshift(
+      `${unit.definition.name} は加護の効果を受けたが、HPは回復しなかった。`,
+    );
+
+    return;
+  }
+
+  state.logs.unshift(
+    `${unit.definition.name} は加護の効果でHPが ${healingResult.actualAmount} 回復した。`,
+  );
+}
+
+function applyPoisonStatusAtActionEnd(
+  state: BattleState,
+  unit: BattleUnit,
+): void {
+  if (hasStatusEffect(unit, "strong_poison")) {
+    applyPoisonLikeEffect(state, unit, 0.2, "猛毒");
+
+    return;
+  }
+
+  if (hasStatusEffect(unit, "poison")) {
+    applyPoisonLikeEffect(state, unit, 0.1, "毒");
+  }
 }
 
 
@@ -9894,6 +11250,29 @@ export interface SkillExecutionInfo {
    * カウンターのrequireDamage判定に使う。
    */
   damageTargetInstanceIds: Set<string>;
+  damageResolution: DamageResolutionState;
+}
+
+export interface DamageResolutionState {
+  /**
+   * この処理解決単位が開始した時点で生存していたユニット。
+   *
+   * この集合に含まれるユニットは、
+   * 処理途中でHP0になっても、すでに確定済みの
+   * 残りヒットを受けられる。
+   */
+  initiallyAliveUnitInstanceIds: Set<string>;
+
+  /**
+   * HPが0になり、処理終了時に死亡確定するユニット。
+   */
+  pendingDefeatUnitInstanceIds: Set<string>;
+
+  /**
+   * そのユニットについて撃破時ゲージを
+   * すでに付与したか。
+   */
+  defeatGaugeAwardedUnitInstanceIds: Set<string>;
 }
 
 
@@ -9908,6 +11287,7 @@ import type { SkillId } from "./common";
 export type StatusEffectId =
   | "paralysis"
   | "poison"
+  | "strong_poison"
   | "confusion"
   | "seal_physical"
   | "seal_magic"
@@ -9916,7 +11296,10 @@ export type StatusEffectId =
   | "heal_block"
   | "frostbite"
   | "counter"
-  | "charged_attack";
+  | "charged_attack"
+  | "damage_chain"
+  | "blessing"
+  | "curse";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -9939,7 +11322,10 @@ export interface StatusEffectDefinition {
 export type StatusEffectParams =
   | CounterStatusParams
   | ChargedAttackStatusParams
-  | FrostbiteStatusParams;
+  | FrostbiteStatusParams
+  | DamageChainStatusParams
+  | BlessingStatusParams
+  | AppliedBlessingStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -10049,6 +11435,57 @@ export interface FrostbiteStatusParams {
   freezingReelNums?: number[];
 }
 
+export interface DamageChainStatusParams {
+  type: "damage_chain";
+
+  /**
+   * 元の計算ダメージに乗算する倍率。
+   *
+   * 例:
+   * 0.5 = 元ダメージの50%
+   * 1   = 元ダメージと同じ
+   */
+  multiplier: number;
+}
+
+export type BlessingStatusParams =
+  | {
+      type: "blessing";
+
+      /**
+       * 毎回の回復量を直接指定する。
+       */
+      healAmount: number;
+
+      attackMultiplier?: never;
+    }
+  | {
+      type: "blessing";
+
+      /**
+       * 付与者の戦闘中攻撃力に乗算する。
+       *
+       * 例:
+       * 0.5 = 攻撃力の50%
+       */
+      attackMultiplier: number;
+
+      healAmount?: never;
+    };
+
+export interface AppliedBlessingStatusParams {
+  type: "blessing";
+  healAmount: number;
+}
+
+export type BlessingBattleStatusEffect = BattleStatusEffect & {
+  id: "blessing";
+  params: {
+    type: "blessing";
+    healAmount: number;
+  };
+};
+
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";
 
 
@@ -10141,4 +11578,77 @@ export function randomVariance(baseValue: number, variance = 0.05): number {
 
   return baseValue * rate
 }
+
+==================================================
+FILE: tsconfig.app.json
+==================================================
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "types": ["vite/client"],
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+}
+
+
+==================================================
+FILE: tsconfig.json
+==================================================
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+
+
+==================================================
+FILE: tsconfig.node.json
+==================================================
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "module": "esnext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}
+
+
+==================================================
+FILE: vite.config.ts
+==================================================
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [vue(), tailwindcss()],
+})
+
 

@@ -23,6 +23,11 @@ import type { BattleSetup } from './types/setup'
 import { finishActorTurn } from './game/actionLifecycle'
 import { resolveStartTurnEffects } from './game/startTurnEffect.ts'
 import { items } from "./data/items";
+import {
+  getEffectiveAttack,
+  getEffectiveSpeed,
+  getStatusEffectValueText,
+} from "./game/statChanges";
 
 type Screen = 'unit_select' | 'battle'
 
@@ -495,10 +500,14 @@ function getSkillName(
                   </p>
 
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
-                    <span v-for="statusEffect in unit.statusEffects" :key="statusEffect.id"
+                    <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
+                      :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
                       class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
-                      {{ getStatusEffectName(statusEffect.id) }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
-                        statusEffect.remainingTurns }}T）
+                      {{ getStatusEffectName(statusEffect.id)
+                      }}{{ getStatusEffectValueText(statusEffect)
+                      }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
+                        statusEffect.remainingTurns
+                      }}T）
                     </span>
                   </div>
                 </div>
@@ -519,8 +528,15 @@ function getSkillName(
                 </p>
 
                 <p>
-                  攻撃: {{ unit.attack }} /
-                  素早さ: {{ unit.speed }}
+                  攻撃: {{ getEffectiveAttack(unit) }}
+                  <span v-if="getEffectiveAttack(unit) !== unit.attack" class="text-xs text-slate-500">
+                    （基準 {{ unit.attack }}）
+                  </span>
+                  /
+                  素早さ: {{ getEffectiveSpeed(unit) }}
+                  <span v-if="getEffectiveSpeed(unit) !== unit.speed" class="text-xs text-slate-500">
+                    （基準 {{ unit.speed }}）
+                  </span>
                 </p>
 
                 <p class="text-slate-400">
@@ -588,10 +604,14 @@ function getSkillName(
                   </p>
 
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
-                    <span v-for="statusEffect in unit.statusEffects" :key="statusEffect.id"
+                    <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
+                      :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
                       class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
-                      {{ getStatusEffectName(statusEffect.id) }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
-                        statusEffect.remainingTurns }}T）
+                      {{ getStatusEffectName(statusEffect.id)
+                      }}{{ getStatusEffectValueText(statusEffect)
+                      }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
+                        statusEffect.remainingTurns
+                      }}T）
                     </span>
                   </div>
                 </div>
@@ -612,8 +632,15 @@ function getSkillName(
                 </p>
 
                 <p>
-                  攻撃: {{ unit.attack }} /
-                  素早さ: {{ unit.speed }}
+                  攻撃: {{ getEffectiveAttack(unit) }}
+                  <span v-if="getEffectiveAttack(unit) !== unit.attack" class="text-xs text-slate-500">
+                    （基準 {{ unit.attack }}）
+                  </span>
+                  /
+                  素早さ: {{ getEffectiveSpeed(unit) }}
+                  <span v-if="getEffectiveSpeed(unit) !== unit.speed" class="text-xs text-slate-500">
+                    （基準 {{ unit.speed }}）
+                  </span>
                 </p>
 
                 <p class="text-slate-400">
