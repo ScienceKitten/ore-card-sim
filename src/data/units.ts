@@ -1111,7 +1111,7 @@ export const units: UnitDefinition[] = [
         "attack_demon_king",
       ],
     ],
-    specialSkillId: "attack_demon_king",
+    specialSkillId: "dua_rythme",
   },
   {
     id: "Leonard_demon_king_grand_parade",
@@ -1149,7 +1149,7 @@ export const units: UnitDefinition[] = [
         "attack_demon_king",
       ],
     ],
-    specialSkillId: "attack_demon_king",
+    specialSkillId: "dua_rythme",
   },
   {
     id: "test_unit",

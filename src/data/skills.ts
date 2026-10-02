@@ -1895,6 +1895,34 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  dua_rythme: {
+    id: "dua_rythme",
+    name: "デュア・リズム",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_allies", includeSelf: true },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "flat",
+                value: 70,
+              },
+            },
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "trance",
+          },
+        ],
+      },
+    ],
+  },
   death_roulette_II: {
     id: "death_roulette_II",
     name: "デスルーレットII",

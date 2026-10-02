@@ -47,6 +47,9 @@ export function hasStatusEffect(
 export function isConfused(unit: BattleUnit): boolean {
   return hasStatusEffect(unit, "confusion");
 }
+export function isTranced(unit: BattleUnit): boolean {
+  return hasStatusEffect(unit, "trance");
+}
 
 export function canActByStatus(unit: BattleUnit): boolean {
   return !hasStatusEffect(unit, "paralysis");
@@ -647,10 +650,14 @@ function cloneChargedAttackStatusParams(
  * 直接書かないための窓口。
  */
 export function getTargetingModeByStatus(unit: BattleUnit): TargetingMode {
+  /** * トランスと混乱は同時に存在しない仕様だが、 * 不正な戦闘データや将来の変更に備え、 * 両方ある場合はトランスを優先する。 */ if (
+    hasStatusEffect(unit, "trance")
+  ) {
+    return "randomize_single";
+  }
   if (hasStatusEffect(unit, "confusion")) {
     return "reverse_team";
   }
-
   return "normal";
 }
 
@@ -669,6 +676,43 @@ function resolveIncompatibleStatusEffects(
   input: AddStatusEffectInput,
 ): boolean {
   const target = input.target;
+
+  /**
+   * トランス中に混乱を付与しようとした場合、
+   * 混乱は付与せず、トランスを維持する。
+   *
+   * 混乱によるチャージ攻撃解除より先に判定する。
+   */
+  if (
+    input.statusEffectId === "confusion" &&
+    hasStatusEffect(target, "trance")
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} はトランス状態のため混乱しなかった。`,
+    );
+
+    return false;
+  }
+
+  /**
+   * トランスを付与するとき、
+   * 既存の混乱を即座に解除する。
+   */
+  if (input.statusEffectId === "trance") {
+    const hadConfusion = hasStatusEffect(target, "confusion");
+
+    if (hadConfusion) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "confusion";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} の混乱はトランスにより解除された。`,
+      );
+    }
+
+    return true;
+  }
 
   /*
    * 既存の混乱・チャージ攻撃の排他処理

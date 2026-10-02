@@ -17,6 +17,7 @@ import {
   getStatusEffectName,
   isConfused,
   isSkillSealedByStatus,
+  isTranced,
 } from './game/statusEffects'
 import type { BattleState, BattleUnit } from './types/battle'
 import type { BattleSetup } from './types/setup'
@@ -135,7 +136,12 @@ const canUseSpecialSkill = computed(() => {
    * 混乱中は必殺技ボタンから
    * 任意に必殺技を選択できない。
    */
-  if (isConfused(activeUnit.value)) return false;
+  if (
+    isConfused(activeUnit.value) ||
+    isTranced(activeUnit.value)
+  ) {
+    return false;
+  }
   if (battleState.value.result.status !== 'in_progress') return false
   if (battleState.value.pendingTargetSelection) return false
 
@@ -233,6 +239,17 @@ const activeUnitIsConfused =
     }
 
     return isConfused(
+      activeUnit.value,
+    );
+  });
+
+const activeUnitIsTranced =
+  computed(() => {
+    if (!activeUnit.value) {
+      return false;
+    }
+
+    return isTranced(
       activeUnit.value,
     );
   });
@@ -781,6 +798,10 @@ function getSkillName(
           <p v-if="activeUnitIsConfused" class="mt-2 text-sm font-bold text-purple-300">
             混乱中は必殺技を選択できません。
             技を使うと必殺技が暴発することがあります。
+          </p>
+          <p v-if="activeUnitIsTranced" class="mt-2 text-sm font-bold text-fuchsia-300">
+            トランス中は必殺技を選択できません。
+            技の対象は一部ランダムになります。
           </p>
 
           <div v-if="battleState.result.status !== 'in_progress'"

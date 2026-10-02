@@ -38,6 +38,7 @@ import {
   hasStatusEffect,
   isConfused,
   isSkillSealedByStatus,
+  isTranced,
   resolveFrostbiteOnReelSelection,
 } from "./statusEffects";
 import {
@@ -86,6 +87,7 @@ export function executeRandomReelSkill(
   }
 
   const actorIsConfused = isConfused(actor);
+  const actorIsTranced = isTranced(actor);
 
   if (actorIsConfused) {
     state.logs.unshift(`${actor.definition.name} は混乱している。`);
@@ -113,6 +115,12 @@ export function executeRandomReelSkill(
      */
   }
 
+  if (actorIsTranced) {
+    state.logs.unshift(
+      `${actor.definition.name} はトランス状態で言うことを聞かない！`,
+    );
+  }
+
   const reel = actor.reels[actor.currentReelIndex];
 
   if (!reel || reel.length === 0) {
@@ -125,7 +133,7 @@ export function executeRandomReelSkill(
    * 混乱中はスイッチがオンでも偏りを適用しない。
    */
   const useProbabilityBias =
-    state.reelProbabilityBiasEnabled && !actorIsConfused;
+    state.reelProbabilityBiasEnabled && !actorIsConfused && !actorIsTranced;
 
   const slotIndex = selectReelSlotIndex(reel.length, useProbabilityBias);
   const skillId = reel[slotIndex];
@@ -196,6 +204,19 @@ export function executeSpecialSkill(
     state.logs.unshift(
       `${actor.definition.name} は混乱しているため必殺技を選べない。`,
     );
+    return;
+  }
+  /**
+   * トランス中は必殺技ボタンから必殺技を使用できない。
+   *
+   * トランス中は混乱の必殺技暴発も発生しないため、
+   * トランスを迂回するオプションは設けない。
+   */
+  if (isTranced(actor)) {
+    state.logs.unshift(
+      `${actor.definition.name} はトランス状態のため必殺技を選べない。`,
+    );
+
     return;
   }
 
@@ -362,13 +383,14 @@ function executeEffectsFromIndex(
       );
 
       /**
-       * 混乱などによって対象選択が変更され、
+       * 混乱によって対象選択が変更され、
        * 変更後の候補がいない場合だけ特殊抽選を行う。
        *
        * self、none、random_all_unitsなど、
        * 対象選択が変化しないものでは抽選しない。
        */
       if (
+        executionInfo.targetingMode === "reverse_team" &&
         isAffectedByTargetingMode &&
         !hasAvailableTargets(state, actor, effectiveTargetSelector)
       ) {

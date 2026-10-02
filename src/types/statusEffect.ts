@@ -20,7 +20,8 @@ export type StatusEffectId =
   | "blessing"
   | "curse"
   | "attack_change"
-  | "speed_change";
+  | "speed_change"
+  | "trance";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;

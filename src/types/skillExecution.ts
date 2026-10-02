@@ -16,8 +16,11 @@ export type SkillExecutionSource =
  *
  * reverse_team:
  *   敵と味方を反転した対象選択を使用する。
+ *
+ * randomize_single:
+ *   単体対象の技に対して、ランダムに1体を選択する。
  */
-export type TargetingMode = "normal" | "reverse_team";
+export type TargetingMode = "normal" | "reverse_team" | "randomize_single";
 
 /**
  * 1回の技実行中に維持する情報。

@@ -119,4 +119,11 @@ export const statusEffectDefinitions: Record<
     category: "benefit",
     defaultDuration: 99,
   },
+
+  trance: {
+    id: "trance",
+    name: "トランス",
+    category: "harmful",
+    defaultDuration: 3,
+  },
 };

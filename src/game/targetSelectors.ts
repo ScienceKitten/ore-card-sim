@@ -186,6 +186,9 @@ export function resolveTargetSelector(
 
     case "reverse_team":
       return reverseTeamTargetSelector(targetSelector);
+
+    case "randomize_single":
+      return randomizeSingleTargetSelector(targetSelector);
   }
 }
 
@@ -285,6 +288,47 @@ function reverseTeamTargetSelector(
       return targetSelector;
   }
 }
+
+/**
+ * トランス状態で使用する対象選択へ変換する。
+ *
+ * single_enemy:
+ *   敵1体を手動選択
+ *   ↓
+ *   生存している敵1体をランダム選択
+ *
+ * single_ally:
+ *   味方1体を手動選択
+ *   ↓
+ *   生存している味方1体をランダム選択
+ *
+ * single_allyのincludeSelfは元の値を維持する。
+ *
+ * それ以外の対象選択は変更しない。
+ */
+function randomizeSingleTargetSelector(
+  targetSelector: TargetSelector,
+): TargetSelector {
+  switch (targetSelector.type) {
+    case "single_enemy":
+      return {
+        type: "random_enemies",
+        count: 1,
+        allowDuplicate: false,
+      };
+
+    case "single_ally":
+      return {
+        type: "random_allies",
+        count: 1,
+        allowDuplicate: false,
+        includeSelf: targetSelector.includeSelf,
+      };
+
+    default:
+      return targetSelector;
+  }
+}
 /**
  * 指定された対象選択で、実行可能な対象が存在するか確認する。
  *
@@ -375,20 +419,28 @@ export function isTargetSelectorAffectedByMode(
   targetSelector: TargetSelector,
   targetingMode: TargetingMode,
 ): boolean {
-  if (targetingMode === "normal") {
-    return false;
-  }
-
-  switch (targetSelector.type) {
-    case "single_enemy":
-    case "single_ally":
-    case "all_enemies":
-    case "all_allies":
-    case "random_enemies":
-    case "random_allies":
-      return true;
-
-    default:
+  switch (targetingMode) {
+    case "normal":
       return false;
+
+    case "reverse_team":
+      switch (targetSelector.type) {
+        case "single_enemy":
+        case "single_ally":
+        case "all_enemies":
+        case "all_allies":
+        case "random_enemies":
+        case "random_allies":
+          return true;
+
+        default:
+          return false;
+      }
+
+    case "randomize_single":
+      return (
+        targetSelector.type === "single_enemy" ||
+        targetSelector.type === "single_ally"
+      );
   }
 }
