@@ -446,6 +446,7 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "yungubi_dance",
+    defaultItemId: "knight_sword",
   },
   {
     id: "arlecchino",
