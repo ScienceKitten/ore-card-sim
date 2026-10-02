@@ -2,12 +2,7 @@ import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
-import {
-  addSpecialGauge,
-  getOpponentTeam,
-  getOwnTeam,
-  getTargetTeam,
-} from "./battleQueries";
+import { addSpecialGauge, getTargetTeam } from "./battleQueries";
 import type {
   StatusEffectCategory,
   StatusEffectId,
