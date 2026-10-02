@@ -557,6 +557,26 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  reel_down: {
+    id: "reel_down",
+    name: "コマンドダウン",
+    attributes: ["none"],
+    category: "change_reel",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_reel",
+            amount: -4,
+          },
+          {
+            type: "extra_action",
+          },
+        ],
+      },
+    ],
+  },
   miss: {
     id: "miss",
     name: "ミス",
@@ -1895,12 +1915,29 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
-  dua_rythme: {
-    id: "dua_rythme",
-    name: "デュア・リズム",
+  dua_rhythm: {
+    id: "dua_rhythm",
+    name: "DUA・RHYTHM",
     attributes: ["none"],
     category: "magic",
     effects: [
+      {
+        target: {
+          type: "none",
+        },
+        actions: [
+          {
+            type: "summon",
+            targetTeam: "self_team",
+            unitId: "girime_summon",
+          },
+          {
+            type: "summon",
+            targetTeam: "self_team",
+            unitId: "girime_summon",
+          },
+        ],
+      },
       {
         target: { type: "all_allies", includeSelf: true },
         actions: [
@@ -1918,6 +1955,80 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "trance",
+          },
+        ],
+      },
+    ],
+  },
+  run_around: {
+    id: "run_around",
+    name: "はしりまわり",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 3, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.55,
+            variance: 0.18,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "flat",
+                value: 12,
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+  rampage: {
+    id: "rampage",
+    name: "あばれまわり",
+    attributes: ["earth"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 4, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.7,
+            variance: 0.35,
+          },
+        ],
+      },
+    ],
+  },
+  roaring_thunder_sprint: {
+    id: "roaring_thunder_sprint",
+    name: "轟雷激走",
+    attributes: ["thunder"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 6, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "paralysis",
+            chance: 0.3,
           },
         ],
       },

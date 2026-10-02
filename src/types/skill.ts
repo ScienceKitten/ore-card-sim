@@ -1,4 +1,11 @@
-import type { Attribute, SkillId, Gender, Species } from "./common";
+import type {
+  Attribute,
+  SkillId,
+  Gender,
+  Species,
+  TargetTeam,
+  UnitId,
+} from "./common";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -72,6 +79,7 @@ export type EffectAction =
   | RemoveStatusEffectAction
   | RandomAction
   | ConditionalAction
+  | SummonAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -118,8 +126,49 @@ export interface ChangeReelAction {
 
 export interface GaugeAction {
   type: "change_special_gauge";
-  targetTeam: "ally" | "enemy" | "self_team" | "opponent_team";
+
+  /**
+   * 使用者基準で対象チームを指定する。
+   */
+  targetTeam: TargetTeam;
+
   amount: number;
+  chance?: number;
+}
+
+/**
+ * 戦闘不能になっているチーム枠へ、
+ * 指定したユニットを召喚する。
+ *
+ * この効果を技に設定するときは、
+ * 原則としてSkillEffect.targetをnoneにする。
+ */
+export interface SummonAction {
+  type: "summon";
+
+  /**
+   * 使用者から見た召喚先チーム。
+   */
+  targetTeam: TargetTeam;
+
+  /**
+   * 召喚するユニットのID。
+   */
+  unitId: UnitId;
+
+  /**
+   * 召喚に成功した後、
+   * 召喚ユニットを対象として順番に実行する効果。
+   *
+   * 未指定なら追加効果なし。
+   */
+  actions?: EffectAction[];
+
+  /**
+   * 召喚自体の発生確率。
+   *
+   * 未指定なら100%。
+   */
   chance?: number;
 }
 

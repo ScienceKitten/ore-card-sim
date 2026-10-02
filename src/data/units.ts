@@ -1111,7 +1111,7 @@ export const units: UnitDefinition[] = [
         "attack_demon_king",
       ],
     ],
-    specialSkillId: "dua_rythme",
+    specialSkillId: "dua_rhythm",
   },
   {
     id: "Leonard_demon_king_grand_parade",
@@ -1149,7 +1149,7 @@ export const units: UnitDefinition[] = [
         "attack_demon_king",
       ],
     ],
-    specialSkillId: "dua_rythme",
+    specialSkillId: "dua_rhythm",
   },
   {
     id: "test_unit",
@@ -1226,5 +1226,35 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "test_counter",
+  },
+  {
+    id: "girime_summon",
+    name: "魔獣ギリメ（召喚用）",
+    maxHp: 175,
+    attack: 61,
+    speed: 61,
+    species: "beast",
+    attribute: "wind",
+    gender: "none",
+    reels: [
+      ["miss", "miss", "reel_up", "reel_up", "reel_up", "attack_power1"],
+      [
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "run_around",
+        "run_around",
+        "run_around",
+      ],
+      [
+        "reel_down",
+        "reel_down",
+        "reel_down",
+        "run_around",
+        "rampage",
+        "rampage",
+      ],
+    ],
+    specialSkillId: "roaring_thunder_sprint",
   },
 ];

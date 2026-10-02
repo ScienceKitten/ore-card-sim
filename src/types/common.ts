@@ -61,3 +61,5 @@ export const speciesLabels: Record<Species, string> = {
 };
 
 export type ItemId = string;
+
+export type TargetTeam = "self_team" | "opponent_team";

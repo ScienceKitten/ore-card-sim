@@ -2,7 +2,12 @@ import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
-import { addSpecialGauge, getOpponentTeam, getOwnTeam } from "./battleQueries";
+import {
+  addSpecialGauge,
+  getOpponentTeam,
+  getOwnTeam,
+  getTargetTeam,
+} from "./battleQueries";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -165,6 +170,10 @@ export function applyEffectAction(
     case "conditional_action":
       context.state.logs.unshift("分岐効果を直接実行することはできません。");
       return;
+
+    case "summon":
+      context.state.logs.unshift("召喚効果を直接実行することはできません。");
+      return;
   }
 }
 
@@ -300,33 +309,26 @@ function applyChangeReel(
 }
 
 function applyGaugeChange(
-  targetTeam: "ally" | "enemy" | "self_team" | "opponent_team",
+  targetTeam: Extract<
+    EffectAction,
+    {
+      type: "change_special_gauge";
+    }
+  >["targetTeam"],
   amount: number,
   context: EffectContext,
 ): void {
-  if (targetTeam === "ally") {
-    addSpecialGauge(context.state.allyTeam, amount);
-    context.state.logs.unshift(
-      `味方チームの必殺技ゲージが ${amount} 変化した。`,
-    );
-    return;
-  }
+  const team = getTargetTeam(context.state, context.actor, targetTeam);
 
-  if (targetTeam === "enemy") {
-    addSpecialGauge(context.state.enemyTeam, amount);
-    context.state.logs.unshift(`敵チームの必殺技ゲージが ${amount} 変化した。`);
-    return;
-  }
+  addSpecialGauge(team, amount);
 
   if (targetTeam === "self_team") {
-    addSpecialGauge(getOwnTeam(context.state, context.actor), amount);
     context.state.logs.unshift(
       `${context.actor.definition.name} 側の必殺技ゲージが ${amount} 変化した。`,
     );
     return;
   }
 
-  addSpecialGauge(getOpponentTeam(context.state, context.actor), amount);
   context.state.logs.unshift(
     `${context.actor.definition.name} の相手側の必殺技ゲージが ${amount} 変化した。`,
   );

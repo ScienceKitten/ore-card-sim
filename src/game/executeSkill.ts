@@ -1,5 +1,5 @@
 import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
-
+import { units } from "../data/units";
 import type { CounterEvent } from "../types/counter";
 import type {
   SkillExecutionInfo,
@@ -14,6 +14,7 @@ import type {
   RandomAction,
   SkillDefinition,
   SkillEffect,
+  SummonAction,
 } from "../types/skill";
 import {
   getActiveUnit,
@@ -21,6 +22,7 @@ import {
   getOwnTeam,
   setSpecialGauge,
   getSpecialGaugeConsumption,
+  getTargetTeam,
 } from "./battleQueries";
 import { finishActorTurn } from "./actionLifecycle";
 import {
@@ -52,6 +54,7 @@ import {
 import { createSkillExecutionInfo } from "./skillExecution";
 import { randomChoice, rollChance } from "../utils/random";
 import { finalizePendingDefeats } from "./battleDamage";
+import { createSummonedBattleUnit } from "./createBattleState";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -641,6 +644,18 @@ function applySkillAction(
 
     return;
   }
+  if (action.type === "summon") {
+    applySummonAction(
+      state,
+      actor,
+      skill,
+      action,
+      usedReelSlot,
+      counterEvents,
+      executionInfo,
+    );
+    return;
+  }
 
   /**
    * 条件分岐を対象ごとに展開する。
@@ -1002,4 +1017,183 @@ function applyConditionalAction(
       );
     }
   }
+}
+
+function createSummonedUnitInstanceId(
+  state: BattleState,
+  side: BattleUnit["side"],
+  position: BattleUnit["position"],
+  unitId: string,
+): string {
+  const serial = state.nextSummonSerial;
+
+  state.nextSummonSerial += 1;
+
+  return `${side}-${position}-${unitId}-summon-${serial}`;
+}
+
+function applySummonAction(
+  state: BattleState,
+  actor: BattleUnit,
+  skill: SkillDefinition,
+  action: SummonAction,
+  usedReelSlot: UsedReelSlot | null,
+  counterEvents: CounterEvent[],
+  executionInfo: SkillExecutionInfo,
+): void {
+  /**
+   * chanceは召喚処理全体に対して
+   * 1回だけ判定する。
+   *
+   * 失敗時は枠の検索も追加効果も行わない。
+   */
+  if (!rollChance(action.chance ?? 1)) {
+    state.logs.unshift("しかし、召喚は発生しなかった。");
+    return;
+  }
+
+  const unitDefinition = units.find((candidate) => {
+    return candidate.id === action.unitId;
+  });
+
+  if (!unitDefinition) {
+    state.logs.unshift(
+      `召喚するユニットID "${action.unitId}" が見つかりません。`,
+    );
+    return;
+  }
+
+  const targetTeam = getTargetTeam(state, actor, action.targetTeam);
+
+  const summonSlot = findSummonSlot(targetTeam, executionInfo);
+
+  if (!summonSlot) {
+    state.logs.unshift("しかし、召喚できる戦闘不能枠がなかった。");
+    return;
+  }
+
+  const position = summonSlot.unit.position;
+
+  const instanceId = createSummonedUnitInstanceId(
+    state,
+    targetTeam.side,
+    position,
+    unitDefinition.id,
+  );
+
+  const summonedUnit = createSummonedBattleUnit(
+    unitDefinition,
+    targetTeam.side,
+    position,
+    instanceId,
+  );
+
+  /**
+   * 元の戦闘不能ユニットがいた配列位置を
+   * 新しい召喚ユニットへ置き換える。
+   *
+   * 配列順も維持される。
+   */
+  targetTeam.units[summonSlot.index] = summonedUnit;
+
+  /**
+   * 召喚されたターンには
+   * 行動できない。
+   */
+  if (!state.actedUnitInstanceIds.includes(summonedUnit.instanceId)) {
+    state.actedUnitInstanceIds.push(summonedUnit.instanceId);
+  }
+
+  /**
+   * 現在の技処理開始時には
+   * 召喚ユニットが存在していなかったため、
+   * initiallyAlive集合へ追加する。
+   *
+   * これにより、召喚後のactionsに含まれる
+   * damageやdrainを召喚ユニットへ
+   * 正常に適用できる。
+   */
+  executionInfo.damageResolution.initiallyAliveUnitInstanceIds.add(
+    summonedUnit.instanceId,
+  );
+
+  state.logs.unshift(
+    `${actor.definition.name} は${summonedUnit.definition.name}を召喚した！`,
+  );
+
+  const followUpActions = action.actions ?? [];
+
+  /**
+   * 追加効果がなければ、
+   * 召喚成功だけで終了する。
+   */
+  if (followUpActions.length === 0) {
+    return;
+  }
+
+  /**
+   * 追加効果は、召喚ユニット1体を
+   * 対象として配列順に実行する。
+   *
+   * 使用者は元の技使用者actorのまま。
+   * 技情報も元のskillを維持する。
+   */
+  for (const followUpAction of followUpActions) {
+    applySkillAction(
+      state,
+      actor,
+      skill,
+      followUpAction,
+      [summonedUnit],
+      usedReelSlot,
+      counterEvents,
+      executionInfo,
+
+      /**
+       * 召喚後の追加効果には
+       * 明示的な対象が存在するのでfalse。
+       */
+      false,
+    );
+  }
+}
+
+const summonPositionPriority = ["leader", "left", "right"] as const;
+
+/**
+ * 召喚先として利用できる戦闘不能枠を取得する。
+ *
+ * 死亡保留中のユニットは、
+ * まだ現在の技処理が終わっていないため
+ * 召喚対象にしない。
+ */
+function findSummonSlot(
+  targetTeam: ReturnType<typeof getTargetTeam>,
+  executionInfo: SkillExecutionInfo,
+): {
+  index: number;
+  unit: BattleUnit;
+} | null {
+  for (const position of summonPositionPriority) {
+    const index = targetTeam.units.findIndex((unit) => {
+      return (
+        unit.position === position &&
+        unit.currentHp <= 0 &&
+        !executionInfo.damageResolution.pendingDefeatUnitInstanceIds.has(
+          unit.instanceId,
+        )
+      );
+    });
+
+    if (index === -1) {
+      continue;
+    }
+
+    return {
+      index,
+      unit: targetTeam.units[index],
+    };
+  }
+
+  return null;
 }

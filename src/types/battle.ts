@@ -93,6 +93,12 @@ export interface BattleState {
   pendingTargetSelection: PendingTargetSelection | null;
   lastRolledReelSlot: UsedReelSlot | null;
   extraActionQueue: string[];
+
+  /**
+   * 召喚ユニットのinstanceIdを
+   * 戦闘中で一意にするための連番。
+   */
+  nextSummonSerial: number;
   reelProbabilityBiasEnabled: boolean;
 
   logs: string[];

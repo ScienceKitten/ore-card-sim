@@ -135,6 +135,7 @@ export function createBattleState(
     pendingTargetSelection: null,
     lastRolledReelSlot: null,
     extraActionQueue: [],
+    nextSummonSerial: 1,
     reelProbabilityBiasEnabled: setup.reelProbabilityBiasEnabled ?? true,
     logs: [
       ...createTeamBonusLogs(enemyTeam),
@@ -219,4 +220,51 @@ function applyInitialItemStatusEffects(
       });
     }
   }
+}
+
+/**
+ * 召喚専用のBattleUnit生成処理。
+ *
+ * 召喚ユニットには次を適用しない。
+ *
+ * ・属性統一ボーナス
+ * ・種族統一ボーナス
+ * ・アイテム補正
+ * ・アイテム開始時状態異常
+ * ・defaultItemId
+ *
+ * BattleTeam.teamBonuses自体も再計算しない。
+ */
+export function createSummonedBattleUnit(
+  unitDefinition: UnitDefinition,
+  side: TeamSide,
+  position: Position,
+  instanceId: string,
+): BattleUnit {
+  const maxHp = Math.max(1, unitDefinition.maxHp);
+
+  const attack = Math.max(0, unitDefinition.attack);
+
+  const speed = Math.max(0, unitDefinition.speed);
+
+  return {
+    instanceId,
+    definition: unitDefinition,
+    side,
+    position,
+
+    /**
+     * 召喚ユニットは
+     * アイテムを所持しない。
+     */
+    itemId: null,
+
+    maxHp,
+    attack,
+    speed,
+    currentHp: maxHp,
+    currentReelIndex: 0,
+    reels: cloneReels(unitDefinition.reels),
+    statusEffects: [],
+  };
 }

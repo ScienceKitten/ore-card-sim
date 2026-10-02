@@ -1,5 +1,5 @@
 import type { BattleState, BattleTeam, BattleUnit } from "../types/battle";
-import type { TeamSide } from "../types/common";
+import type { TargetTeam, TeamSide } from "../types/common";
 
 export function getAllBattleUnits(state: BattleState): BattleUnit[] {
   return [...state.allyTeam.units, ...state.enemyTeam.units];
@@ -83,4 +83,25 @@ export function getSpecialGaugeConsumption(unit: BattleUnit): number {
   }
 
   return Math.max(0, configuredValue);
+}
+
+/**
+ * 使用者基準のTargetTeamから、
+ * 実際の戦闘チームを取得する。
+ *
+ * 召喚、必殺技ゲージ変更など、
+ * チームを直接対象とする効果で共通利用する。
+ */
+export function getTargetTeam(
+  state: BattleState,
+  actor: BattleUnit,
+  targetTeam: TargetTeam,
+): BattleTeam {
+  switch (targetTeam) {
+    case "self_team":
+      return getOwnTeam(state, actor);
+
+    case "opponent_team":
+      return getOpponentTeam(state, actor);
+  }
 }
