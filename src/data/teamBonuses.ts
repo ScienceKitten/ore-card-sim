@@ -47,4 +47,7 @@ export const speciesTeamBonuses: Partial<Record<Species, StatBonus>> = {
   undead: {
     maxHp: 10,
   },
+  mythical_beast: {
+    attack: 4,
+  },
 };

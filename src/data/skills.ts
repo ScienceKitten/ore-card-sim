@@ -2178,4 +2178,73 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  beating_thrashing: {
+    id: "beating_thrashing",
+    name: "打打擲",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+            duration: 1,
+            chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  torture_chamber_of_love_and_hate: {
+    id: "torture_chamber_of_love_and_hate",
+    name: "愛憎の拷問部屋",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 1, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 3,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "paralysis",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "blessing",
+            params: {
+              type: "blessing",
+              attackMultiplier: 0.5,
+            },
+            chance: 0.6,
+          },
+        ],
+      },
+    ],
+  },
 };
