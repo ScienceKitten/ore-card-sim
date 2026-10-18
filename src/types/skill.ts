@@ -77,6 +77,7 @@ export type EffectAction =
   | ReplaceUsedSkillAction
   | ApplyStatusEffectAction
   | RemoveStatusEffectAction
+  | ReduceHpRateAction
   | RandomAction
   | ConditionalAction
   | SummonAction
@@ -393,6 +394,50 @@ export interface ConditionalAction {
    * 1回だけ行われる。
    *
    * 未指定なら100%。
+   */
+  chance?: number;
+}
+
+/**
+ * 対象のHPを、現在HPまたは最大HPの割合で直接減少させる。
+ *
+ * この効果はダメージとして扱わない。
+ */
+export interface ReduceHpRateAction {
+  type: "reduce_hp_rate";
+
+  /**
+   * 減少させる割合。
+   *
+   * 例:
+   * 0.1 = 10%
+   * 0.5 = 50%
+   * 1   = 100%
+   * 1.5 = 150%
+   *
+   * 1を超える値も指定可能。
+   * 負数は実行時に0として扱う。
+   */
+  rate: number;
+
+  /**
+   * trueまたは未指定:
+   *   効果適用時点の現在HPを基準にする。
+   *
+   * false:
+   *   最大HPを基準にする。
+   *
+   * 未指定時はtrue。
+   */
+  basedOnCurrentHp?: boolean;
+
+  /**
+   * 効果の発生確率。
+   *
+   * 1 = 100%
+   * 0.5 = 50%
+   *
+   * 未指定時は100%。
    */
   chance?: number;
 }

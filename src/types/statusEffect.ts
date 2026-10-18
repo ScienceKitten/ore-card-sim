@@ -21,6 +21,7 @@ export type StatusEffectId =
   | "curse"
   | "attack_change"
   | "speed_change"
+  | "defense_change"
   | "trance";
 
 export interface StatusEffectDefinition {
@@ -49,7 +50,8 @@ export type StatusEffectParams =
   | BlessingStatusParams
   | AppliedBlessingStatusParams
   | AttackChangeStatusParams
-  | SpeedChangeStatusParams;
+  | SpeedChangeStatusParams
+  | DefenseChangeStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -278,3 +280,41 @@ export type StatChangeBattleStatusEffect =
   | SpeedChangeBattleStatusEffect;
 
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";
+
+/**
+ * 防御変化のパラメータ。
+ *
+ * 対象が技由来のダメージを受けるとき、
+ * 計算ダメージへmultiplierを乗算する。
+ *
+ * multiplierは0以上。
+ */
+export interface DefenseChangeStatusParams {
+  type: "defense_change";
+
+  /**
+   * 被ダメージ倍率。
+   *
+   * 例:
+   * 0.5 = 技ダメージを半減
+   * 1.5 = 技ダメージを1.5倍
+   * 2   = 技ダメージを2倍
+   */
+  multiplier: number;
+
+  /**
+   * 未指定時はsame_skill。
+   *
+   * same_skill:
+   *   同じ技IDから付与された防御変化だけ更新する。
+   *
+   * always_stack:
+   *   同じ技IDからの付与でも、常に別状態として追加する。
+   */
+  stackingMode?: StatChangeStackingMode;
+}
+
+export type DefenseChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "defense_change";
+  params: DefenseChangeStatusParams;
+};

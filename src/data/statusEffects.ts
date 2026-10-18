@@ -120,6 +120,13 @@ export const statusEffectDefinitions: Record<
     defaultDuration: 99,
   },
 
+  defense_change: {
+    id: "defense_change",
+    name: "防御変化",
+    category: "harmful",
+    defaultDuration: 3,
+  },
+
   trance: {
     id: "trance",
     name: "トランス",

@@ -1,5 +1,6 @@
 import type { BattleStatusEffect, BattleUnit } from "../types/battle";
 import type {
+  DefenseChangeStatusParams,
   StatChangeOperation,
   StatChangeStatusParams,
 } from "../types/statusEffect";
@@ -128,12 +129,79 @@ export function formatStatChangeValue(operation: StatChangeOperation): string {
  * 通常の状態異常には空文字を返し、
  * 攻撃変化・素早さ変化だけ変化量を返す。
  */
+/**
+ * 戦闘画面に表示する
+ * 状態異常の数値部分を返す。
+ *
+ * 攻撃変化:
+ * +10
+ * ×2
+ *
+ * 素早さ変化:
+ * -5
+ * ×0.5
+ *
+ * 防御変化:
+ * ×1.5
+ */
 export function getStatusEffectValueText(
   statusEffect: BattleStatusEffect,
 ): string {
-  if (!isStatChangeStatusEffect(statusEffect)) {
-    return "";
+  if (isStatChangeStatusEffect(statusEffect)) {
+    return formatStatChangeValue(statusEffect.params.change);
   }
 
-  return formatStatChangeValue(statusEffect.params.change);
+  if (isDefenseChangeStatusEffect(statusEffect)) {
+    return `×${statusEffect.params.multiplier}`;
+  }
+
+  return "";
+}
+
+/**
+ * BattleStatusEffectが、
+ * 有効な防御変化かを判定する。
+ */
+export function isDefenseChangeStatusEffect(
+  statusEffect: BattleStatusEffect,
+): statusEffect is BattleStatusEffect & {
+  id: "defense_change";
+  params: DefenseChangeStatusParams;
+} {
+  if (statusEffect.id !== "defense_change") {
+    return false;
+  }
+
+  if (statusEffect.params?.type !== "defense_change") {
+    return false;
+  }
+
+  return (
+    Number.isFinite(statusEffect.params.multiplier) &&
+    statusEffect.params.multiplier >= 0
+  );
+}
+
+/**
+ * ユニットが持つすべての防御変化倍率を乗算する。
+ *
+ * 例:
+ * ×1.5 と ×1.5
+ * → 1.5 × 1.5
+ * → 2.25
+ *
+ * 途中では丸めない。
+ */
+export function getDefenseDamageMultiplier(unit: BattleUnit): number {
+  let multiplier = 1;
+
+  for (const statusEffect of unit.statusEffects) {
+    if (!isDefenseChangeStatusEffect(statusEffect)) {
+      continue;
+    }
+
+    multiplier *= statusEffect.params.multiplier;
+  }
+
+  return multiplier;
 }

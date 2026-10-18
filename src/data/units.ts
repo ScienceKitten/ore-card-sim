@@ -1052,7 +1052,7 @@ export const units: UnitDefinition[] = [
         "fetter_of_causality",
       ],
     ],
-    specialSkillId: "miss",
+    specialSkillId: "urge_of_the_underworld",
   },
   {
     id: "bone",
@@ -1211,7 +1211,7 @@ export const units: UnitDefinition[] = [
     gender: "male",
     reels: [
       ["miss", "attack_power1", "reel_up", "reel_up", "reel_up", "reel_up"],
-      ["miss", "charge", "clay_burst", "void_sword", "void_sword", "reel_up"],
+      ["miss", "charge", "clay_burst", "reel_up", "reel_up", "reel_up"],
       ["miss", "clay_burst", "reel_up", "reel_up", "reel_up", "reel_up"],
       [
         "attack",

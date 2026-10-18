@@ -7,7 +7,7 @@ import {
 } from "../data/attributeChart";
 import { randomVariance } from "../utils/random";
 import type { EffectOrigin } from "../types/effectExecution";
-import { getEffectiveAttack } from "./statChanges";
+import { getDefenseDamageMultiplier, getEffectiveAttack } from "./statChanges";
 
 const DAMAGE_MIN = 1;
 const DAMAGE_MAX = 999;
@@ -27,9 +27,19 @@ export interface DamageCalculationResult {
   multiplier: number;
   variance: number;
   attributeMultiplier: number;
+
+  /**
+   * 技由来ダメージに適用された
+   * 防御変化倍率の積。
+   *
+   * 技を介さないダメージでは1。
+   */
+  defenseChangeMultiplier: number;
+
   finalMultiplier: number;
   skillAttributes: Attribute[];
   defenderAttribute: Attribute;
+
   /**
    * アンデッドに対する技カテゴリ補正。
    */
@@ -95,8 +105,20 @@ export function calculateDamage(
     input.origin,
   );
 
+  const defenseChangeMultiplier = calculateDefenseChangeMultiplier(
+    input.defender,
+    input.origin,
+  );
+
+  /**
+   * 防御変化倍率とアンデッド倍率は
+   * 互いに独立して乗算する。
+   */
   const finalMultiplier =
-    multiplier * attributeMultiplier * undeadCategoryMultiplier;
+    multiplier *
+    attributeMultiplier *
+    undeadCategoryMultiplier *
+    defenseChangeMultiplier;
 
   const baseDamage = attackValue * finalMultiplier;
 
@@ -114,6 +136,7 @@ export function calculateDamage(
     variance,
     attributeMultiplier,
     undeadCategoryMultiplier,
+    defenseChangeMultiplier,
     finalMultiplier,
     skillAttributes: input.skill.attributes,
     defenderAttribute: input.defender.definition.attribute,
@@ -166,4 +189,23 @@ export function calculateUndeadSkillCategoryMultiplier(
     default:
       return 1;
   }
+}
+
+/**
+ * 技由来のダメージへ適用する
+ * 防御変化倍率を返す。
+ *
+ * カウンター、毒、猛毒、凍傷、
+ * ダメージチェーンなど、
+ * 技を介さないダメージには適用しない。
+ */
+export function calculateDefenseChangeMultiplier(
+  defender: BattleUnit,
+  origin: EffectOrigin,
+): number {
+  if (origin.type !== "skill") {
+    return 1;
+  }
+
+  return getDefenseDamageMultiplier(defender);
 }

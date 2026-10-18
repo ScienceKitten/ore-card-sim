@@ -75,6 +75,15 @@ export function applyEffectAction(
       applyHeal(action.amount, targets, context);
       return;
 
+    case "reduce_hp_rate":
+      if (!rollChance(action.chance ?? 1)) {
+        context.state.logs.unshift("しかし、HP割合減少は発生しなかった。");
+        return;
+      }
+
+      applyReduceHpRate(action, targets, context);
+      return;
+
     case "change_reel":
       if (!rollChance(action.chance ?? 1)) {
         context.state.logs.unshift("しかし、リール変更は発生しなかった。");
@@ -586,4 +595,118 @@ function applyDrain(
   context.state.logs.unshift(
     `${context.actor.definition.name} は ${healingResult.actualAmount} HPを吸収した。`,
   );
+}
+
+/**
+ * 割合をログ表示用のパーセント文字列へ変換する。
+ *
+ * 例:
+ * 0.5   -> "50"
+ * 0.125 -> "12.5"
+ * 1     -> "100"
+ * 1.5   -> "150"
+ *
+ * 浮動小数点誤差による
+ * 30.000000000000004のような表示を避ける。
+ */
+function formatRateAsPercent(rate: number): string {
+  const percent = Math.round(rate * 100 * 1_000_000) / 1_000_000;
+
+  return `${percent}`;
+}
+
+/**
+ * 対象のHPを割合で直接減少させる。
+ *
+ * この処理はapplyBattleDamage()を通さない。
+ * そのため、次の処理は発生しない。
+ *
+ * ・防御変化
+ * ・属性相性
+ * ・アンデッドの技カテゴリ倍率
+ * ・被ダメージ時の必殺技ゲージ増加
+ * ・ダメージチェーン
+ * ・チャージ攻撃のダメージ解除
+ * ・その他の被ダメージ時効果
+ *
+ * HPが0になった場合だけ、
+ * 既存の死亡保留処理へ登録する。
+ */
+function applyReduceHpRate(
+  action: Extract<
+    EffectAction,
+    {
+      type: "reduce_hp_rate";
+    }
+  >,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  /**
+   * NaNやInfinityは技データ不正として不発にする。
+   */
+  if (!Number.isFinite(action.rate)) {
+    context.state.logs.unshift("しかし、HP割合減少の割合が不正だった。");
+    return;
+  }
+
+  /**
+   * 負数は0として扱う。
+   * 1を超える割合はそのまま許可する。
+   */
+  const normalizedRate = Math.max(0, action.rate);
+
+  /**
+   * 未指定時は現在HP基準。
+   */
+  const basedOnCurrentHp = action.basedOnCurrentHp ?? true;
+
+  const baseLabel = basedOnCurrentHp ? "現在HP" : "最大HP";
+
+  const percentText = formatRateAsPercent(normalizedRate);
+
+  for (const target of targets) {
+    const beforeHp = target.currentHp;
+
+    /**
+     * 現在HP基準の場合は、
+     * 各効果適用時点のcurrentHpを使う。
+     *
+     * 最大HP基準の場合は、
+     * 常にmaxHpを使う。
+     */
+    const baseHp = basedOnCurrentHp ? target.currentHp : target.maxHp;
+
+    /**
+     * 減少量の小数点以下は
+     * 切り捨てる。
+     */
+    const reductionAmount = Math.floor(baseHp * normalizedRate);
+
+    /**
+     * HPは0未満にならない。
+     *
+     * reductionAmountが現在HPを上回っても、
+     * currentHpは0で停止する。
+     */
+    target.currentHp = Math.max(0, target.currentHp - reductionAmount);
+
+    context.state.logs.unshift(
+      `${target.definition.name}の体力は${baseLabel}の${percentText}％減少した。`,
+    );
+
+    /**
+     * この効果によって、
+     * 生存状態からHP0になった場合だけ
+     * 死亡保留へ登録する。
+     *
+     * applyBattleDamage()は使用しないため、
+     * ダメージ関連の副作用は発生しない。
+     */
+    if (beforeHp > 0 && target.currentHp <= 0) {
+      context.damageResolution.pendingDefeatUnitInstanceIds.add(
+        target.instanceId,
+      );
+    }
+  }
 }

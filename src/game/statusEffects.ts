@@ -11,6 +11,7 @@ import type {
   CounterBattleStatusEffect,
   CounterStatusParams,
   DamageChainStatusParams,
+  DefenseChangeStatusParams,
   FrostbiteStatusParams,
   StatChangeStatusParams,
   StatusEffectCategory,
@@ -164,6 +165,10 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
     input.statusEffectId === "speed_change"
   ) {
     addStatChangeStatusEffect(input);
+    return;
+  }
+  if (input.statusEffectId === "defense_change") {
+    addDefenseChangeStatusEffect(input);
     return;
   }
 
@@ -499,6 +504,8 @@ function cloneStatusEffectParams(
     case "attack_change":
     case "speed_change":
       return cloneStatChangeStatusParams(params);
+    case "defense_change":
+      return cloneDefenseChangeStatusParams(params);
   }
 }
 
@@ -1288,6 +1295,16 @@ function cloneStatChangeStatusParams(
   };
 }
 
+function cloneDefenseChangeStatusParams(
+  params: DefenseChangeStatusParams,
+): DefenseChangeStatusParams {
+  return {
+    type: "defense_change",
+    multiplier: params.multiplier,
+    stackingMode: params.stackingMode ?? "same_skill",
+  };
+}
+
 function getStatChangeLogValue(params: StatChangeStatusParams): string {
   if (params.change.kind === "flat") {
     return params.change.value >= 0
@@ -1432,6 +1449,152 @@ function addStatChangeStatusEffect(input: AddStatusEffectInput): void {
     `${input.target.definition.name} の${getStatusEffectName(
       input.statusEffectId,
     )}が${beforeValue}・${beforeDuration}ターンから、${getStatChangeLogValue(
+      incomingParams,
+    )}・${existing.remainingTurns}ターンに更新された。`,
+  );
+}
+
+function isDefenseChangeStatusParams(
+  params: StatusEffectParams | undefined,
+): params is DefenseChangeStatusParams {
+  return params?.type === "defense_change";
+}
+
+function getDefenseChangeLogValue(params: DefenseChangeStatusParams): string {
+  return `×${params.multiplier}`;
+}
+
+/**
+ * 防御変化を付与する。
+ *
+ * same_skill:
+ *   同じ技IDから付与された既存の防御変化を更新する。
+ *
+ * always_stack:
+ *   同じ技IDでも必ず別の状態異常として追加する。
+ */
+function addDefenseChangeStatusEffect(input: AddStatusEffectInput): void {
+  if (input.statusEffectId !== "defense_change") {
+    return;
+  }
+
+  if (!isDefenseChangeStatusParams(input.params)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への防御変化付与に必要な倍率が設定されていません。`,
+    );
+    return;
+  }
+
+  /**
+   * NaN、Infinity、負倍率は無効。
+   *
+   * ×0は許可する。
+   * ただし通常の技ダメージには最低1の制限があるため、
+   * 最終的な技ダメージは1になる。
+   */
+  if (
+    !Number.isFinite(input.params.multiplier) ||
+    input.params.multiplier < 0
+  ) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への防御変化の倍率が不正です。`,
+    );
+    return;
+  }
+
+  const duration = input.duration ?? getDefaultStatusDuration("defense_change");
+
+  const normalizedDuration = Math.max(0, Math.trunc(duration));
+
+  const category = resolveAppliedStatusEffectCategory(
+    "defense_change",
+    input.category,
+  );
+
+  const incomingParams = cloneDefenseChangeStatusParams(input.params);
+
+  const stackingMode = incomingParams.stackingMode ?? "same_skill";
+
+  /**
+   * always_stackでは、
+   * 既存状態を検索せず必ず追加する。
+   */
+  if (stackingMode === "always_stack") {
+    input.target.statusEffects.push({
+      id: "defense_change",
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に防御変化${getDefenseChangeLogValue(
+        incomingParams,
+      )}が付与された。`,
+    );
+
+    return;
+  }
+
+  /**
+   * same_skillでは、
+   * 同じ状態異常IDかつ同じ技IDの
+   * 最初の既存状態を更新する。
+   */
+  const existing = input.target.statusEffects.find((statusEffect) => {
+    return (
+      statusEffect.id === "defense_change" &&
+      statusEffect.sourceSkillId === input.sourceSkillId
+    );
+  });
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: "defense_change",
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に防御変化${getDefenseChangeLogValue(
+        incomingParams,
+      )}が付与された。`,
+    );
+
+    return;
+  }
+
+  const beforeDuration = existing.remainingTurns;
+
+  const beforeValue = isDefenseChangeStatusParams(existing.params)
+    ? getDefenseChangeLogValue(existing.params)
+    : "未設定";
+
+  /**
+   * 継続ターンは長い方を採用する。
+   */
+  existing.remainingTurns = Math.max(
+    existing.remainingTurns,
+    normalizedDuration,
+  );
+
+  /**
+   * 倍率は新しく付与された値へ更新する。
+   *
+   * 配列上の位置は変更しない。
+   */
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+  existing.sourceSkillId = input.sourceSkillId;
+  existing.category = category;
+  existing.params = incomingParams;
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の防御変化が${beforeValue}・${beforeDuration}ターンから、${getDefenseChangeLogValue(
       incomingParams,
     )}・${existing.remainingTurns}ターンに更新された。`,
   );

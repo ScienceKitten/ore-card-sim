@@ -1837,6 +1837,16 @@ export const skills: Record<string, SkillDefinition> = {
               attackMultiplier: 0.6,
             },
           },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "defense_change",
+            category: "benefit",
+            duration: 99,
+            params: {
+              type: "defense_change",
+              multiplier: 0.5,
+            },
+          },
         ],
       },
     ],
@@ -2192,6 +2202,43 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  urge_of_the_underworld: {
+    id: "urge_of_the_underworld",
+    name: "黄泉の欲動",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              statusEffectIds: ["curse"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 100000,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "reduce_hp_rate",
+                rate: 0.75,
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "heal_block",
+                duration: 99,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   beating_thrashing: {
     id: "beating_thrashing",
     name: "打打擲",
@@ -2273,6 +2320,15 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 4,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "reduce_hp_rate",
+            rate: 0.4,
           },
         ],
       },
