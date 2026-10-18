@@ -221,6 +221,13 @@ function applyCounterActionsToAttacker(
       },
       usedReelSlot: null,
       damageResolution,
+
+      /**
+       * カウンターは技の通常対象選択を
+       * 経由しない直接効果なので、
+       * 混乱によるTargetTeam反転は行わない。
+       */
+      targetingMode: "normal",
     });
   }
 }
@@ -243,6 +250,12 @@ function applyCounterActionsToSelf(
       },
       usedReelSlot: null,
       damageResolution,
+
+      /**
+       * カウンターの直接効果には、
+       * 技使用時の混乱対象変更を適用しない。
+       */
+      targetingMode: "normal",
     });
   }
 }

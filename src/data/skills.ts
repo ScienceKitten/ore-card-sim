@@ -802,8 +802,22 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "single_ally" },
         actions: [
           {
-            type: "change_reel",
-            amount: 2,
+            type: "conditional_action",
+
+            conditions: {
+              species: ["dragon"],
+            },
+            matchedActions: [
+              {
+                type: "change_reel",
+                amount: 2,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "do_nothing",
+              },
+            ],
           },
         ],
       },
@@ -2242,6 +2256,105 @@ export const skills: Record<string, SkillDefinition> = {
               attackMultiplier: 0.5,
             },
             chance: 0.6,
+          },
+        ],
+      },
+    ],
+  },
+  void_sword: {
+    id: "void_sword",
+    name: "虚空剣",
+    attributes: ["wind"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 4,
+          },
+        ],
+      },
+    ],
+  },
+  star_collapsion: {
+    id: "star_collapsion",
+    name: "崩壊星",
+    attributes: ["wind"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "random_action",
+            actions: [
+              {
+                type: "damage",
+                multiplier: 4,
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "curse",
+                duration: 1,
+              },
+              {
+                type: "damage",
+                multiplier: 100000,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  clay_burst: {
+    id: "clay_burst",
+    name: "クレイバースト",
+    attributes: ["earth"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            category: "harmful",
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "multiplier",
+                value: 0.9,
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+  vastila_tempest: {
+    id: "vastila_tempest",
+    name: "ヴァスティラ・テンペスト",
+    attributes: ["earth", "thunder"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.5,
           },
         ],
       },

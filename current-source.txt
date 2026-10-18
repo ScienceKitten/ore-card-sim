@@ -2,8 +2,8 @@
 PROJECT SOURCE EXPORT
 ==================================================
 Project root: C:\Development\webweb\webgame-ts
-Exported at: 2026-10-02 03:49:26
-Source file count: 46
+Exported at: 2026-10-18 21:03:09
+Source file count: 47
 
 ==================================================
 PROJECT FILE STRUCTURE
@@ -45,6 +45,7 @@ PROJECT FILE STRUCTURE
 [FILE] src/game/healing.ts
 [FILE] src/game/skillExecution.ts
 [FILE] src/game/startTurnEffect.ts
+[FILE] src/game/statChanges.ts
 [FILE] src/game/statusEffects.ts
 [FILE] src/game/targetSelectors.ts
 [FILE] src/game/teamBonus.ts
@@ -154,12 +155,18 @@ import {
   getStatusEffectName,
   isConfused,
   isSkillSealedByStatus,
+  isTranced,
 } from './game/statusEffects'
 import type { BattleState, BattleUnit } from './types/battle'
 import type { BattleSetup } from './types/setup'
 import { finishActorTurn } from './game/actionLifecycle'
 import { resolveStartTurnEffects } from './game/startTurnEffect.ts'
 import { items } from "./data/items";
+import {
+  getEffectiveAttack,
+  getEffectiveSpeed,
+  getStatusEffectValueText,
+} from "./game/statChanges";
 
 type Screen = 'unit_select' | 'battle'
 
@@ -267,7 +274,12 @@ const canUseSpecialSkill = computed(() => {
    * 混乱中は必殺技ボタンから
    * 任意に必殺技を選択できない。
    */
-  if (isConfused(activeUnit.value)) return false;
+  if (
+    isConfused(activeUnit.value) ||
+    isTranced(activeUnit.value)
+  ) {
+    return false;
+  }
   if (battleState.value.result.status !== 'in_progress') return false
   if (battleState.value.pendingTargetSelection) return false
 
@@ -365,6 +377,17 @@ const activeUnitIsConfused =
     }
 
     return isConfused(
+      activeUnit.value,
+    );
+  });
+
+const activeUnitIsTranced =
+  computed(() => {
+    if (!activeUnit.value) {
+      return false;
+    }
+
+    return isTranced(
       activeUnit.value,
     );
   });
@@ -632,10 +655,14 @@ function getSkillName(
                   </p>
 
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
-                    <span v-for="statusEffect in unit.statusEffects" :key="statusEffect.id"
+                    <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
+                      :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
                       class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
-                      {{ getStatusEffectName(statusEffect.id) }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
-                        statusEffect.remainingTurns }}T）
+                      {{ getStatusEffectName(statusEffect.id)
+                      }}{{ getStatusEffectValueText(statusEffect)
+                      }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
+                        statusEffect.remainingTurns
+                      }}T）
                     </span>
                   </div>
                 </div>
@@ -656,8 +683,15 @@ function getSkillName(
                 </p>
 
                 <p>
-                  攻撃: {{ unit.attack }} /
-                  素早さ: {{ unit.speed }}
+                  攻撃: {{ getEffectiveAttack(unit) }}
+                  <span v-if="getEffectiveAttack(unit) !== unit.attack" class="text-xs text-slate-500">
+                    （基準 {{ unit.attack }}）
+                  </span>
+                  /
+                  素早さ: {{ getEffectiveSpeed(unit) }}
+                  <span v-if="getEffectiveSpeed(unit) !== unit.speed" class="text-xs text-slate-500">
+                    （基準 {{ unit.speed }}）
+                  </span>
                 </p>
 
                 <p class="text-slate-400">
@@ -725,10 +759,14 @@ function getSkillName(
                   </p>
 
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
-                    <span v-for="statusEffect in unit.statusEffects" :key="statusEffect.id"
+                    <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
+                      :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
                       class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
-                      {{ getStatusEffectName(statusEffect.id) }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
-                        statusEffect.remainingTurns }}T）
+                      {{ getStatusEffectName(statusEffect.id)
+                      }}{{ getStatusEffectValueText(statusEffect)
+                      }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
+                        statusEffect.remainingTurns
+                      }}T）
                     </span>
                   </div>
                 </div>
@@ -749,8 +787,15 @@ function getSkillName(
                 </p>
 
                 <p>
-                  攻撃: {{ unit.attack }} /
-                  素早さ: {{ unit.speed }}
+                  攻撃: {{ getEffectiveAttack(unit) }}
+                  <span v-if="getEffectiveAttack(unit) !== unit.attack" class="text-xs text-slate-500">
+                    （基準 {{ unit.attack }}）
+                  </span>
+                  /
+                  素早さ: {{ getEffectiveSpeed(unit) }}
+                  <span v-if="getEffectiveSpeed(unit) !== unit.speed" class="text-xs text-slate-500">
+                    （基準 {{ unit.speed }}）
+                  </span>
                 </p>
 
                 <p class="text-slate-400">
@@ -891,6 +936,10 @@ function getSkillName(
           <p v-if="activeUnitIsConfused" class="mt-2 text-sm font-bold text-purple-300">
             混乱中は必殺技を選択できません。
             技を使うと必殺技が暴発することがあります。
+          </p>
+          <p v-if="activeUnitIsTranced" class="mt-2 text-sm font-bold text-fuchsia-300">
+            トランス中は必殺技を選択できません。
+            技の対象は一部ランダムになります。
           </p>
 
           <div v-if="battleState.result.status !== 'in_progress'"
@@ -2387,6 +2436,26 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  reel_down: {
+    id: "reel_down",
+    name: "コマンドダウン",
+    attributes: ["none"],
+    category: "change_reel",
+    effects: [
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "change_reel",
+            amount: -4,
+          },
+          {
+            type: "extra_action",
+          },
+        ],
+      },
+    ],
+  },
   miss: {
     id: "miss",
     name: "ミス",
@@ -2612,8 +2681,22 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "single_ally" },
         actions: [
           {
-            type: "change_reel",
-            amount: 2,
+            type: "conditional_action",
+
+            conditions: {
+              species: ["dragon"],
+            },
+            matchedActions: [
+              {
+                type: "change_reel",
+                amount: 2,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "do_nothing",
+              },
+            ],
           },
         ],
       },
@@ -3457,6 +3540,22 @@ export const skills: Record<string, SkillDefinition> = {
           },
         ],
       },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "flat",
+                value: 20,
+              },
+            },
+          },
+        ],
+      },
     ],
   },
   divine_punishment_azure_fang_dragon_sword: {
@@ -3471,6 +3570,22 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.5,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "flat",
+                value: 20,
+              },
+            },
           },
         ],
       },
@@ -3693,6 +3808,125 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  dua_rhythm: {
+    id: "dua_rhythm",
+    name: "DUA・RHYTHM",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "none",
+        },
+        actions: [
+          {
+            type: "summon",
+            targetTeam: "self_team",
+            unitId: "girime_summon",
+          },
+          {
+            type: "summon",
+            targetTeam: "self_team",
+            unitId: "girime_summon",
+          },
+        ],
+      },
+      {
+        target: { type: "all_allies", includeSelf: true },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "flat",
+                value: 70,
+              },
+            },
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "trance",
+          },
+        ],
+      },
+    ],
+  },
+  run_around: {
+    id: "run_around",
+    name: "はしりまわり",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 3, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.55,
+            variance: 0.18,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "flat",
+                value: 12,
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+  rampage: {
+    id: "rampage",
+    name: "あばれまわり",
+    attributes: ["earth"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 4, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.7,
+            variance: 0.35,
+          },
+        ],
+      },
+    ],
+  },
+  roaring_thunder_sprint: {
+    id: "roaring_thunder_sprint",
+    name: "轟雷激走",
+    attributes: ["thunder"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 6, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 0.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "paralysis",
+            chance: 0.3,
+          },
+        ],
+      },
+    ],
+  },
   death_roulette_II: {
     id: "death_roulette_II",
     name: "デスルーレットII",
@@ -3837,6 +4071,174 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  beating_thrashing: {
+    id: "beating_thrashing",
+    name: "打打擲",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "confusion",
+            duration: 1,
+            chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  torture_chamber_of_love_and_hate: {
+    id: "torture_chamber_of_love_and_hate",
+    name: "愛憎の拷問部屋",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "random_enemies", count: 1, allowDuplicate: true },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 3,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "poison",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "paralysis",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_magic",
+            chance: 0.6,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "blessing",
+            params: {
+              type: "blessing",
+              attackMultiplier: 0.5,
+            },
+            chance: 0.6,
+          },
+        ],
+      },
+    ],
+  },
+  void_sword: {
+    id: "void_sword",
+    name: "虚空剣",
+    attributes: ["wind"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 4,
+          },
+        ],
+      },
+    ],
+  },
+  star_collapsion: {
+    id: "star_collapsion",
+    name: "崩壊星",
+    attributes: ["wind"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "random_action",
+            actions: [
+              {
+                type: "damage",
+                multiplier: 4,
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "curse",
+                duration: 1,
+              },
+              {
+                type: "damage",
+                multiplier: 100000,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  clay_burst: {
+    id: "clay_burst",
+    name: "クレイバースト",
+    attributes: ["earth"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.4,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            category: "harmful",
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "multiplier",
+                value: 0.9,
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+  vastila_tempest: {
+    id: "vastila_tempest",
+    name: "ヴァスティラ・テンペスト",
+    attributes: ["earth", "thunder"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.5,
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
 };
 
 
@@ -3951,6 +4353,26 @@ export const statusEffectDefinitions: Record<
     category: "harmful",
     defaultDuration: 2,
   },
+  attack_change: {
+    id: "attack_change",
+    name: "攻撃変化",
+    category: "benefit",
+    defaultDuration: 99,
+  },
+
+  speed_change: {
+    id: "speed_change",
+    name: "素早さ変化",
+    category: "benefit",
+    defaultDuration: 99,
+  },
+
+  trance: {
+    id: "trance",
+    name: "トランス",
+    category: "harmful",
+    defaultDuration: 3,
+  },
 };
 
 
@@ -4005,6 +4427,9 @@ export const speciesTeamBonuses: Partial<Record<Species, StatBonus>> = {
 
   undead: {
     maxHp: 10,
+  },
+  mythical_beast: {
+    attack: 4,
   },
 };
 
@@ -4193,14 +4618,7 @@ export const units: UnitDefinition[] = [
     gender: "none",
     reels: [
       ["miss", "all_range_attack", "reel_up", "reel_up", "reel_up", "reel_up"],
-      [
-        "miss",
-        "miss",
-        "miss",
-        "all_range_attack",
-        "all_range_attack",
-        "all_range_attack",
-      ],
+      ["miss", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       ["miss", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       [
         "miss",
@@ -4460,6 +4878,7 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "yungubi_dance",
+    defaultItemId: "knight_sword",
   },
   {
     id: "arlecchino",
@@ -4905,7 +5324,7 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "attack_power1",
-    specialGaugeConsumption: 2,
+    specialGaugeConsumption: 4,
   },
   {
     id: "guri_dark",
@@ -5125,7 +5544,7 @@ export const units: UnitDefinition[] = [
         "attack_demon_king",
       ],
     ],
-    specialSkillId: "attack_demon_king",
+    specialSkillId: "dua_rhythm",
   },
   {
     id: "Leonard_demon_king_grand_parade",
@@ -5163,7 +5582,86 @@ export const units: UnitDefinition[] = [
         "attack_demon_king",
       ],
     ],
-    specialSkillId: "attack_demon_king",
+    specialSkillId: "dua_rhythm",
+  },
+  {
+    id: "gozumezu",
+    name: "獄長牛頭馬頭",
+    maxHp: 446,
+    attack: 92,
+    speed: 21,
+    species: "mythical_beast",
+    attribute: "earth",
+    gender: "male",
+    reels: [
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["reel_down", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "reel_down",
+        "beating_thrashing",
+        "beating_thrashing",
+        "beating_thrashing",
+        "beating_thrashing",
+        "beating_thrashing",
+      ],
+    ],
+    specialSkillId: "torture_chamber_of_love_and_hate",
+  },
+  {
+    id: "raicilla_dragon_king",
+    name: "龍王ライシーヤ(虚空剣) ",
+    maxHp: 399,
+    attack: 84,
+    speed: 57,
+    species: "dragon",
+    attribute: "wind",
+    gender: "male",
+    reels: [
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "miss", "void_sword", "void_sword", "void_sword", "reel_up"],
+      [
+        "attack_power1",
+        "attack_power1",
+        "void_sword",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+      ],
+      [
+        "attack_power1",
+        "void_sword",
+        "void_sword",
+        "void_sword",
+        "void_sword",
+        "void_sword",
+      ],
+    ],
+    specialSkillId: "star_collapsion",
+  },
+  {
+    id: "arakisyu_great_demon_king",
+    name: "大魔王アラキシュ ",
+    maxHp: 504,
+    attack: 81,
+    speed: 18,
+    species: "demon",
+    attribute: "earth",
+    gender: "male",
+    reels: [
+      ["miss", "attack_power1", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "charge", "clay_burst", "void_sword", "void_sword", "reel_up"],
+      ["miss", "clay_burst", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "attack",
+        "clay_burst",
+        "clay_burst",
+        "clay_burst",
+        "clay_burst",
+        "clay_burst",
+      ],
+    ],
+    specialSkillId: "vastila_tempest",
   },
   {
     id: "test_unit",
@@ -5240,6 +5738,36 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "test_counter",
+  },
+  {
+    id: "girime_summon",
+    name: "魔獣ギリメ（召喚用）",
+    maxHp: 175,
+    attack: 61,
+    speed: 61,
+    species: "beast",
+    attribute: "wind",
+    gender: "none",
+    reels: [
+      ["miss", "miss", "reel_up", "reel_up", "reel_up", "attack_power1"],
+      [
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "run_around",
+        "run_around",
+        "run_around",
+      ],
+      [
+        "reel_down",
+        "reel_down",
+        "reel_down",
+        "run_around",
+        "rampage",
+        "rampage",
+      ],
+    ],
+    specialSkillId: "roaring_thunder_sprint",
   },
 ];
 
@@ -5657,7 +6185,7 @@ export function finalizePendingDefeats(
 FILE: src/game/battleQueries.ts
 ==================================================
 import type { BattleState, BattleTeam, BattleUnit } from "../types/battle";
-import type { TeamSide } from "../types/common";
+import type { TargetTeam, TeamSide } from "../types/common";
 
 export function getAllBattleUnits(state: BattleState): BattleUnit[] {
   return [...state.allyTeam.units, ...state.enemyTeam.units];
@@ -5741,6 +6269,27 @@ export function getSpecialGaugeConsumption(unit: BattleUnit): number {
   }
 
   return Math.max(0, configuredValue);
+}
+
+/**
+ * 使用者基準のTargetTeamから、
+ * 実際の戦闘チームを取得する。
+ *
+ * 召喚、必殺技ゲージ変更など、
+ * チームを直接対象とする効果で共通利用する。
+ */
+export function getTargetTeam(
+  state: BattleState,
+  actor: BattleUnit,
+  targetTeam: TargetTeam,
+): BattleTeam {
+  switch (targetTeam) {
+    case "self_team":
+      return getOwnTeam(state, actor);
+
+    case "opponent_team":
+      return getOpponentTeam(state, actor);
+  }
 }
 
 
@@ -6228,6 +6777,7 @@ export function createBattleState(
     pendingTargetSelection: null,
     lastRolledReelSlot: null,
     extraActionQueue: [],
+    nextSummonSerial: 1,
     reelProbabilityBiasEnabled: setup.reelProbabilityBiasEnabled ?? true,
     logs: [
       ...createTeamBonusLogs(enemyTeam),
@@ -6314,6 +6864,53 @@ function applyInitialItemStatusEffects(
   }
 }
 
+/**
+ * 召喚専用のBattleUnit生成処理。
+ *
+ * 召喚ユニットには次を適用しない。
+ *
+ * ・属性統一ボーナス
+ * ・種族統一ボーナス
+ * ・アイテム補正
+ * ・アイテム開始時状態異常
+ * ・defaultItemId
+ *
+ * BattleTeam.teamBonuses自体も再計算しない。
+ */
+export function createSummonedBattleUnit(
+  unitDefinition: UnitDefinition,
+  side: TeamSide,
+  position: Position,
+  instanceId: string,
+): BattleUnit {
+  const maxHp = Math.max(1, unitDefinition.maxHp);
+
+  const attack = Math.max(0, unitDefinition.attack);
+
+  const speed = Math.max(0, unitDefinition.speed);
+
+  return {
+    instanceId,
+    definition: unitDefinition,
+    side,
+    position,
+
+    /**
+     * 召喚ユニットは
+     * アイテムを所持しない。
+     */
+    itemId: null,
+
+    maxHp,
+    attack,
+    speed,
+    currentHp: maxHp,
+    currentReelIndex: 0,
+    reels: cloneReels(unitDefinition.reels),
+    statusEffects: [],
+  };
+}
+
 
 ==================================================
 FILE: src/game/damage.ts
@@ -6327,6 +6924,7 @@ import {
 } from "../data/attributeChart";
 import { randomVariance } from "../utils/random";
 import type { EffectOrigin } from "../types/effectExecution";
+import { getEffectiveAttack } from "./statChanges";
 
 const DAMAGE_MIN = 1;
 const DAMAGE_MAX = 999;
@@ -6401,7 +6999,7 @@ export function calculateDamage(
 
   const multiplier = input.action.multiplier;
 
-  const attackValue = input.attacker.attack;
+  const attackValue = getEffectiveAttack(input.attacker);
 
   const attributeMultiplier = calculateAttributeMultiplier(
     input.skill.attributes,
@@ -6495,7 +7093,7 @@ import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
-import { addSpecialGauge, getOpponentTeam, getOwnTeam } from "./battleQueries";
+import { addSpecialGauge, getTargetTeam } from "./battleQueries";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -6658,6 +7256,10 @@ export function applyEffectAction(
     case "conditional_action":
       context.state.logs.unshift("分岐効果を直接実行することはできません。");
       return;
+
+    case "summon":
+      context.state.logs.unshift("召喚効果を直接実行することはできません。");
+      return;
   }
 }
 
@@ -6793,33 +7395,26 @@ function applyChangeReel(
 }
 
 function applyGaugeChange(
-  targetTeam: "ally" | "enemy" | "self_team" | "opponent_team",
+  targetTeam: Extract<
+    EffectAction,
+    {
+      type: "change_special_gauge";
+    }
+  >["targetTeam"],
   amount: number,
   context: EffectContext,
 ): void {
-  if (targetTeam === "ally") {
-    addSpecialGauge(context.state.allyTeam, amount);
-    context.state.logs.unshift(
-      `味方チームの必殺技ゲージが ${amount} 変化した。`,
-    );
-    return;
-  }
+  const team = getTargetTeam(context.state, context.actor, targetTeam);
 
-  if (targetTeam === "enemy") {
-    addSpecialGauge(context.state.enemyTeam, amount);
-    context.state.logs.unshift(`敵チームの必殺技ゲージが ${amount} 変化した。`);
-    return;
-  }
+  addSpecialGauge(team, amount);
 
   if (targetTeam === "self_team") {
-    addSpecialGauge(getOwnTeam(context.state, context.actor), amount);
     context.state.logs.unshift(
       `${context.actor.definition.name} 側の必殺技ゲージが ${amount} 変化した。`,
     );
     return;
   }
 
-  addSpecialGauge(getOpponentTeam(context.state, context.actor), amount);
   context.state.logs.unshift(
     `${context.actor.definition.name} の相手側の必殺技ゲージが ${amount} 変化した。`,
   );
@@ -7067,7 +7662,7 @@ function applyDrain(
 FILE: src/game/executeSkill.ts
 ==================================================
 import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
-
+import { units } from "../data/units";
 import type { CounterEvent } from "../types/counter";
 import type {
   SkillExecutionInfo,
@@ -7082,6 +7677,7 @@ import type {
   RandomAction,
   SkillDefinition,
   SkillEffect,
+  SummonAction,
 } from "../types/skill";
 import {
   getActiveUnit,
@@ -7089,6 +7685,7 @@ import {
   getOwnTeam,
   setSpecialGauge,
   getSpecialGaugeConsumption,
+  getTargetTeam,
 } from "./battleQueries";
 import { finishActorTurn } from "./actionLifecycle";
 import {
@@ -7106,6 +7703,7 @@ import {
   hasStatusEffect,
   isConfused,
   isSkillSealedByStatus,
+  isTranced,
   resolveFrostbiteOnReelSelection,
 } from "./statusEffects";
 import {
@@ -7119,6 +7717,7 @@ import {
 import { createSkillExecutionInfo } from "./skillExecution";
 import { randomChoice, rollChance } from "../utils/random";
 import { finalizePendingDefeats } from "./battleDamage";
+import { createSummonedBattleUnit } from "./createBattleState";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -7154,6 +7753,7 @@ export function executeRandomReelSkill(
   }
 
   const actorIsConfused = isConfused(actor);
+  const actorIsTranced = isTranced(actor);
 
   if (actorIsConfused) {
     state.logs.unshift(`${actor.definition.name} は混乱している。`);
@@ -7181,6 +7781,12 @@ export function executeRandomReelSkill(
      */
   }
 
+  if (actorIsTranced) {
+    state.logs.unshift(
+      `${actor.definition.name} はトランス状態で言うことを聞かない！`,
+    );
+  }
+
   const reel = actor.reels[actor.currentReelIndex];
 
   if (!reel || reel.length === 0) {
@@ -7193,7 +7799,7 @@ export function executeRandomReelSkill(
    * 混乱中はスイッチがオンでも偏りを適用しない。
    */
   const useProbabilityBias =
-    state.reelProbabilityBiasEnabled && !actorIsConfused;
+    state.reelProbabilityBiasEnabled && !actorIsConfused && !actorIsTranced;
 
   const slotIndex = selectReelSlotIndex(reel.length, useProbabilityBias);
   const skillId = reel[slotIndex];
@@ -7264,6 +7870,19 @@ export function executeSpecialSkill(
     state.logs.unshift(
       `${actor.definition.name} は混乱しているため必殺技を選べない。`,
     );
+    return;
+  }
+  /**
+   * トランス中は必殺技ボタンから必殺技を使用できない。
+   *
+   * トランス中は混乱の必殺技暴発も発生しないため、
+   * トランスを迂回するオプションは設けない。
+   */
+  if (isTranced(actor)) {
+    state.logs.unshift(
+      `${actor.definition.name} はトランス状態のため必殺技を選べない。`,
+    );
+
     return;
   }
 
@@ -7430,13 +8049,14 @@ function executeEffectsFromIndex(
       );
 
       /**
-       * 混乱などによって対象選択が変更され、
+       * 混乱によって対象選択が変更され、
        * 変更後の候補がいない場合だけ特殊抽選を行う。
        *
        * self、none、random_all_unitsなど、
        * 対象選択が変化しないものでは抽選しない。
        */
       if (
+        executionInfo.targetingMode === "reverse_team" &&
         isAffectedByTargetingMode &&
         !hasAvailableTargets(state, actor, effectiveTargetSelector)
       ) {
@@ -7685,6 +8305,18 @@ function applySkillAction(
       isTargetless,
     );
 
+    return;
+  }
+  if (action.type === "summon") {
+    applySummonAction(
+      state,
+      actor,
+      skill,
+      action,
+      usedReelSlot,
+      counterEvents,
+      executionInfo,
+    );
     return;
   }
 
@@ -8050,6 +8682,185 @@ function applyConditionalAction(
   }
 }
 
+function createSummonedUnitInstanceId(
+  state: BattleState,
+  side: BattleUnit["side"],
+  position: BattleUnit["position"],
+  unitId: string,
+): string {
+  const serial = state.nextSummonSerial;
+
+  state.nextSummonSerial += 1;
+
+  return `${side}-${position}-${unitId}-summon-${serial}`;
+}
+
+function applySummonAction(
+  state: BattleState,
+  actor: BattleUnit,
+  skill: SkillDefinition,
+  action: SummonAction,
+  usedReelSlot: UsedReelSlot | null,
+  counterEvents: CounterEvent[],
+  executionInfo: SkillExecutionInfo,
+): void {
+  /**
+   * chanceは召喚処理全体に対して
+   * 1回だけ判定する。
+   *
+   * 失敗時は枠の検索も追加効果も行わない。
+   */
+  if (!rollChance(action.chance ?? 1)) {
+    state.logs.unshift("しかし、召喚は発生しなかった。");
+    return;
+  }
+
+  const unitDefinition = units.find((candidate) => {
+    return candidate.id === action.unitId;
+  });
+
+  if (!unitDefinition) {
+    state.logs.unshift(
+      `召喚するユニットID "${action.unitId}" が見つかりません。`,
+    );
+    return;
+  }
+
+  const targetTeam = getTargetTeam(state, actor, action.targetTeam);
+
+  const summonSlot = findSummonSlot(targetTeam, executionInfo);
+
+  if (!summonSlot) {
+    state.logs.unshift("しかし、召喚できる戦闘不能枠がなかった。");
+    return;
+  }
+
+  const position = summonSlot.unit.position;
+
+  const instanceId = createSummonedUnitInstanceId(
+    state,
+    targetTeam.side,
+    position,
+    unitDefinition.id,
+  );
+
+  const summonedUnit = createSummonedBattleUnit(
+    unitDefinition,
+    targetTeam.side,
+    position,
+    instanceId,
+  );
+
+  /**
+   * 元の戦闘不能ユニットがいた配列位置を
+   * 新しい召喚ユニットへ置き換える。
+   *
+   * 配列順も維持される。
+   */
+  targetTeam.units[summonSlot.index] = summonedUnit;
+
+  /**
+   * 召喚されたターンには
+   * 行動できない。
+   */
+  if (!state.actedUnitInstanceIds.includes(summonedUnit.instanceId)) {
+    state.actedUnitInstanceIds.push(summonedUnit.instanceId);
+  }
+
+  /**
+   * 現在の技処理開始時には
+   * 召喚ユニットが存在していなかったため、
+   * initiallyAlive集合へ追加する。
+   *
+   * これにより、召喚後のactionsに含まれる
+   * damageやdrainを召喚ユニットへ
+   * 正常に適用できる。
+   */
+  executionInfo.damageResolution.initiallyAliveUnitInstanceIds.add(
+    summonedUnit.instanceId,
+  );
+
+  state.logs.unshift(
+    `${actor.definition.name} は${summonedUnit.definition.name}を召喚した！`,
+  );
+
+  const followUpActions = action.actions ?? [];
+
+  /**
+   * 追加効果がなければ、
+   * 召喚成功だけで終了する。
+   */
+  if (followUpActions.length === 0) {
+    return;
+  }
+
+  /**
+   * 追加効果は、召喚ユニット1体を
+   * 対象として配列順に実行する。
+   *
+   * 使用者は元の技使用者actorのまま。
+   * 技情報も元のskillを維持する。
+   */
+  for (const followUpAction of followUpActions) {
+    applySkillAction(
+      state,
+      actor,
+      skill,
+      followUpAction,
+      [summonedUnit],
+      usedReelSlot,
+      counterEvents,
+      executionInfo,
+
+      /**
+       * 召喚後の追加効果には
+       * 明示的な対象が存在するのでfalse。
+       */
+      false,
+    );
+  }
+}
+
+const summonPositionPriority = ["leader", "left", "right"] as const;
+
+/**
+ * 召喚先として利用できる戦闘不能枠を取得する。
+ *
+ * 死亡保留中のユニットは、
+ * まだ現在の技処理が終わっていないため
+ * 召喚対象にしない。
+ */
+function findSummonSlot(
+  targetTeam: ReturnType<typeof getTargetTeam>,
+  executionInfo: SkillExecutionInfo,
+): {
+  index: number;
+  unit: BattleUnit;
+} | null {
+  for (const position of summonPositionPriority) {
+    const index = targetTeam.units.findIndex((unit) => {
+      return (
+        unit.position === position &&
+        unit.currentHp <= 0 &&
+        !executionInfo.damageResolution.pendingDefeatUnitInstanceIds.has(
+          unit.instanceId,
+        )
+      );
+    });
+
+    if (index === -1) {
+      continue;
+    }
+
+    return {
+      index,
+      unit: targetTeam.units[index],
+    };
+  }
+
+  return null;
+}
+
 
 ==================================================
 FILE: src/game/healing.ts
@@ -8347,6 +9158,150 @@ function executeChargedAttack(
 
 
 ==================================================
+FILE: src/game/statChanges.ts
+==================================================
+import type { BattleStatusEffect, BattleUnit } from "../types/battle";
+import type {
+  StatChangeOperation,
+  StatChangeStatusParams,
+} from "../types/statusEffect";
+
+/**
+ * BattleStatusEffectが、有効な能力変化状態異常かを判定する。
+ */
+export function isStatChangeStatusEffect(
+  statusEffect: BattleStatusEffect,
+): statusEffect is BattleStatusEffect & {
+  id: "attack_change" | "speed_change";
+  params: StatChangeStatusParams;
+} {
+  if (
+    statusEffect.id !== "attack_change" &&
+    statusEffect.id !== "speed_change"
+  ) {
+    return false;
+  }
+
+  if (!statusEffect.params) {
+    return false;
+  }
+
+  return (
+    statusEffect.params.type === statusEffect.id &&
+    Number.isFinite(statusEffect.params.change.value)
+  );
+}
+
+/**
+ * 1件の能力変化を現在値へ適用する。
+ *
+ * 各状態異常の適用直後に、Math.trunc()によって
+ * 小数部分を0方向へ切り捨てる。
+ *
+ * この時点では最低0への制限を行わない。
+ * 負数になった後、後続の負倍率などによって
+ * 正数へ戻ることを許可するため。
+ */
+function applyStatChangeOperation(
+  currentValue: number,
+  operation: StatChangeOperation,
+): number {
+  if (operation.kind === "flat") {
+    return Math.trunc(currentValue + operation.value);
+  }
+
+  return Math.trunc(currentValue * operation.value);
+}
+
+/**
+ * 基準値へ、指定された種類の能力変化を
+ * 状態異常配列の格納順に適用する。
+ *
+ * statusEffectsはpush順を維持するため、
+ * 通常は付与された順番と一致する。
+ */
+function calculateEffectiveStat(
+  unit: BattleUnit,
+  statusEffectId: "attack_change" | "speed_change",
+  baseValue: number,
+): number {
+  let value = baseValue;
+
+  for (const statusEffect of unit.statusEffects) {
+    if (statusEffect.id !== statusEffectId) {
+      continue;
+    }
+
+    if (!isStatChangeStatusEffect(statusEffect)) {
+      continue;
+    }
+
+    value = applyStatChangeOperation(value, statusEffect.params.change);
+  }
+
+  /**
+   * 最低値制限は、すべての能力変化を
+   * 適用し終えた後にだけ行う。
+   */
+  return Math.max(0, value);
+}
+
+/**
+ * 状態異常適用後の実効攻撃力。
+ *
+ * unit.attack自体は、ユニット基本値、
+ * チームボーナス、アイテム補正を含む
+ * 基準攻撃力として維持する。
+ */
+export function getEffectiveAttack(unit: BattleUnit): number {
+  return calculateEffectiveStat(unit, "attack_change", unit.attack);
+}
+
+/**
+ * 状態異常適用後の実効素早さ。
+ *
+ * unit.speed自体は、ユニット基本値、
+ * チームボーナス、アイテム補正を含む
+ * 基準素早さとして維持する。
+ */
+export function getEffectiveSpeed(unit: BattleUnit): number {
+  return calculateEffectiveStat(unit, "speed_change", unit.speed);
+}
+
+/**
+ * 戦闘画面で能力変化量を表示する。
+ *
+ * 例:
+ * +10
+ * -5
+ * ×2
+ * ×0.5
+ * ×-1
+ */
+export function formatStatChangeValue(operation: StatChangeOperation): string {
+  if (operation.kind === "flat") {
+    return operation.value >= 0 ? `+${operation.value}` : `${operation.value}`;
+  }
+
+  return `×${operation.value}`;
+}
+
+/**
+ * 通常の状態異常には空文字を返し、
+ * 攻撃変化・素早さ変化だけ変化量を返す。
+ */
+export function getStatusEffectValueText(
+  statusEffect: BattleStatusEffect,
+): string {
+  if (!isStatChangeStatusEffect(statusEffect)) {
+    return "";
+  }
+
+  return formatStatChangeValue(statusEffect.params.change);
+}
+
+
+==================================================
 FILE: src/game/statusEffects.ts
 ==================================================
 import type {
@@ -8363,6 +9318,7 @@ import type {
   CounterStatusParams,
   DamageChainStatusParams,
   FrostbiteStatusParams,
+  StatChangeStatusParams,
   StatusEffectCategory,
   StatusEffectId,
   StatusEffectParams,
@@ -8377,6 +9333,7 @@ import {
   finalizePendingDefeats,
 } from "./battleDamage";
 import { applyHealing } from "./healing";
+import { getEffectiveAttack } from "./statChanges";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -8395,6 +9352,9 @@ export function hasStatusEffect(
 
 export function isConfused(unit: BattleUnit): boolean {
   return hasStatusEffect(unit, "confusion");
+}
+export function isTranced(unit: BattleUnit): boolean {
+  return hasStatusEffect(unit, "trance");
 }
 
 export function canActByStatus(unit: BattleUnit): boolean {
@@ -8463,7 +9423,10 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
     input.statusEffectId === "curse" &&
     input.target.definition.species === "undead"
   ) {
-    const healAmount = Math.max(0, Math.floor(input.target.attack * 0.5));
+    const healAmount = Math.max(
+      0,
+      Math.floor(getEffectiveAttack(input.target) * 0.5),
+    );
     addBlessingStatusEffect({
       ...input,
       statusEffectId: "blessing",
@@ -8499,6 +9462,14 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
   }
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
+    return;
+  }
+
+  if (
+    input.statusEffectId === "attack_change" ||
+    input.statusEffectId === "speed_change"
+  ) {
+    addStatChangeStatusEffect(input);
     return;
   }
 
@@ -8827,8 +9798,13 @@ function cloneStatusEffectParams(
 
     case "damage_chain":
       return cloneDamageChainStatusParams(params);
+
     case "blessing":
       return cloneBlessingStatusParams(params);
+
+    case "attack_change":
+    case "speed_change":
+      return cloneStatChangeStatusParams(params);
   }
 }
 
@@ -8980,10 +9956,14 @@ function cloneChargedAttackStatusParams(
  * 直接書かないための窓口。
  */
 export function getTargetingModeByStatus(unit: BattleUnit): TargetingMode {
+  /** * トランスと混乱は同時に存在しない仕様だが、 * 不正な戦闘データや将来の変更に備え、 * 両方ある場合はトランスを優先する。 */ if (
+    hasStatusEffect(unit, "trance")
+  ) {
+    return "randomize_single";
+  }
   if (hasStatusEffect(unit, "confusion")) {
     return "reverse_team";
   }
-
   return "normal";
 }
 
@@ -9002,6 +9982,43 @@ function resolveIncompatibleStatusEffects(
   input: AddStatusEffectInput,
 ): boolean {
   const target = input.target;
+
+  /**
+   * トランス中に混乱を付与しようとした場合、
+   * 混乱は付与せず、トランスを維持する。
+   *
+   * 混乱によるチャージ攻撃解除より先に判定する。
+   */
+  if (
+    input.statusEffectId === "confusion" &&
+    hasStatusEffect(target, "trance")
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} はトランス状態のため混乱しなかった。`,
+    );
+
+    return false;
+  }
+
+  /**
+   * トランスを付与するとき、
+   * 既存の混乱を即座に解除する。
+   */
+  if (input.statusEffectId === "trance") {
+    const hadConfusion = hasStatusEffect(target, "confusion");
+
+    if (hadConfusion) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "confusion";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} の混乱はトランスにより解除された。`,
+      );
+    }
+
+    return true;
+  }
 
   /*
    * 既存の混乱・チャージ攻撃の排他処理
@@ -9370,7 +10387,10 @@ function resolveBlessingHealAmount(input: AddStatusEffectInput): number | null {
     return null;
   }
 
-  return Math.max(0, Math.floor(sourceUnit.attack * params.attackMultiplier));
+  return Math.max(
+    0,
+    Math.floor(getEffectiveAttack(sourceUnit) * params.attackMultiplier),
+  );
 }
 
 function addBlessingStatusEffect(input: AddStatusEffectInput): void {
@@ -9552,6 +10572,175 @@ function applyPoisonStatusAtActionEnd(
   if (hasStatusEffect(unit, "poison")) {
     applyPoisonLikeEffect(state, unit, 0.1, "毒");
   }
+}
+
+function isMatchingStatChangeParams(
+  statusEffectId: "attack_change" | "speed_change",
+  params: StatusEffectParams | undefined,
+): params is StatChangeStatusParams {
+  return params?.type === statusEffectId;
+}
+
+function cloneStatChangeStatusParams(
+  params: StatChangeStatusParams,
+): StatChangeStatusParams {
+  return {
+    type: params.type,
+    change: {
+      kind: params.change.kind,
+      value: params.change.value,
+    },
+    stackingMode: params.stackingMode ?? "same_skill",
+  };
+}
+
+function getStatChangeLogValue(params: StatChangeStatusParams): string {
+  if (params.change.kind === "flat") {
+    return params.change.value >= 0
+      ? `+${params.change.value}`
+      : `${params.change.value}`;
+  }
+
+  return `×${params.change.value}`;
+}
+
+function addStatChangeStatusEffect(input: AddStatusEffectInput): void {
+  if (
+    input.statusEffectId !== "attack_change" &&
+    input.statusEffectId !== "speed_change"
+  ) {
+    return;
+  }
+
+  if (!isMatchingStatChangeParams(input.statusEffectId, input.params)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への${getStatusEffectName(
+        input.statusEffectId,
+      )}付与に必要な変化量が設定されていません。`,
+    );
+    return;
+  }
+
+  if (!Number.isFinite(input.params.change.value)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への${getStatusEffectName(
+        input.statusEffectId,
+      )}の変化量が不正です。`,
+    );
+    return;
+  }
+
+  const duration =
+    input.duration ?? getDefaultStatusDuration(input.statusEffectId);
+
+  const normalizedDuration = Math.max(0, Math.trunc(duration));
+
+  const category = resolveAppliedStatusEffectCategory(
+    input.statusEffectId,
+    input.category,
+  );
+
+  const incomingParams = cloneStatChangeStatusParams(input.params);
+
+  const stackingMode = incomingParams.stackingMode ?? "same_skill";
+
+  /**
+   * always_stackでは既存状態を一切検索せず、
+   * 必ず新しいインスタンスとして末尾へ追加する。
+   */
+  if (stackingMode === "always_stack") {
+    input.target.statusEffects.push({
+      id: input.statusEffectId,
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に${getStatusEffectName(
+        input.statusEffectId,
+      )}${getStatChangeLogValue(incomingParams)}が付与された。`,
+    );
+
+    return;
+  }
+
+  /**
+   * same_skillでは、
+   * 同じ状態異常IDかつ同じ付与元技IDのものだけ
+   * 更新対象とする。
+   *
+   * always_stackによって同じ技IDの状態が複数ある場合も
+   * 考えられるが、same_skillによる再付与では
+   * 最初に見つかったものを更新する。
+   */
+  const existing = input.target.statusEffects.find((statusEffect) => {
+    return (
+      statusEffect.id === input.statusEffectId &&
+      statusEffect.sourceSkillId === input.sourceSkillId
+    );
+  });
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: input.statusEffectId,
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に${getStatusEffectName(
+        input.statusEffectId,
+      )}${getStatChangeLogValue(incomingParams)}が付与された。`,
+    );
+
+    return;
+  }
+
+  const beforeDuration = existing.remainingTurns;
+
+  const beforeValue =
+    existing.params &&
+    isMatchingStatChangeParams(input.statusEffectId, existing.params)
+      ? getStatChangeLogValue(existing.params)
+      : "未設定";
+
+  /**
+   * 継続ターンは長い方を採用する。
+   */
+  existing.remainingTurns = Math.max(
+    existing.remainingTurns,
+    normalizedDuration,
+  );
+
+  /**
+   * 変化量、分類、付与者は新しい付与内容へ更新する。
+   *
+   * statusEffects配列内の位置は変えないため、
+   * 最初に付与された計算順が維持される。
+   */
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+  existing.category = category;
+  existing.params = incomingParams;
+
+  /**
+   * sourceSkillIdは一致しているが、
+   * 新しい値を明示的に再代入しておく。
+   */
+  existing.sourceSkillId = input.sourceSkillId;
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の${getStatusEffectName(
+      input.statusEffectId,
+    )}が${beforeValue}・${beforeDuration}ターンから、${getStatChangeLogValue(
+      incomingParams,
+    )}・${existing.remainingTurns}ターンに更新された。`,
+  );
 }
 
 
@@ -9746,6 +10935,9 @@ export function resolveTargetSelector(
 
     case "reverse_team":
       return reverseTeamTargetSelector(targetSelector);
+
+    case "randomize_single":
+      return randomizeSingleTargetSelector(targetSelector);
   }
 }
 
@@ -9845,6 +11037,47 @@ function reverseTeamTargetSelector(
       return targetSelector;
   }
 }
+
+/**
+ * トランス状態で使用する対象選択へ変換する。
+ *
+ * single_enemy:
+ *   敵1体を手動選択
+ *   ↓
+ *   生存している敵1体をランダム選択
+ *
+ * single_ally:
+ *   味方1体を手動選択
+ *   ↓
+ *   生存している味方1体をランダム選択
+ *
+ * single_allyのincludeSelfは元の値を維持する。
+ *
+ * それ以外の対象選択は変更しない。
+ */
+function randomizeSingleTargetSelector(
+  targetSelector: TargetSelector,
+): TargetSelector {
+  switch (targetSelector.type) {
+    case "single_enemy":
+      return {
+        type: "random_enemies",
+        count: 1,
+        allowDuplicate: false,
+      };
+
+    case "single_ally":
+      return {
+        type: "random_allies",
+        count: 1,
+        allowDuplicate: false,
+        includeSelf: targetSelector.includeSelf,
+      };
+
+    default:
+      return targetSelector;
+  }
+}
 /**
  * 指定された対象選択で、実行可能な対象が存在するか確認する。
  *
@@ -9935,21 +11168,29 @@ export function isTargetSelectorAffectedByMode(
   targetSelector: TargetSelector,
   targetingMode: TargetingMode,
 ): boolean {
-  if (targetingMode === "normal") {
-    return false;
-  }
-
-  switch (targetSelector.type) {
-    case "single_enemy":
-    case "single_ally":
-    case "all_enemies":
-    case "all_allies":
-    case "random_enemies":
-    case "random_allies":
-      return true;
-
-    default:
+  switch (targetingMode) {
+    case "normal":
       return false;
+
+    case "reverse_team":
+      switch (targetSelector.type) {
+        case "single_enemy":
+        case "single_ally":
+        case "all_enemies":
+        case "all_allies":
+        case "random_enemies":
+        case "random_allies":
+          return true;
+
+        default:
+          return false;
+      }
+
+    case "randomize_single":
+      return (
+        targetSelector.type === "single_enemy" ||
+        targetSelector.type === "single_ally"
+      );
   }
 }
 
@@ -10053,6 +11294,7 @@ FILE: src/game/turnManager.ts
 ==================================================
 import type { BattleState, BattleUnit } from "../types/battle";
 import { addSpecialGauge } from "./battleQueries";
+import { getEffectiveSpeed } from "./statChanges";
 
 export function getAllBattleUnits(state: BattleState): BattleUnit[] {
   return [...state.allyTeam.units, ...state.enemyTeam.units];
@@ -10067,12 +11309,6 @@ export function hasActedThisTurn(
   unit: BattleUnit,
 ): boolean {
   return state.actedUnitInstanceIds.includes(unit.instanceId);
-}
-
-export function getEffectiveSpeed(unit: BattleUnit): number {
-  let speed = unit.speed;
-
-  return speed;
 }
 
 function pickRandom<T>(items: T[]): T {
@@ -10141,28 +11377,28 @@ export function proceedTurnIfNeeded(state: BattleState): void {
 ==================================================
 FILE: src/game/validateGameData.ts
 ==================================================
-import type { UnitDefinition } from '../types/unit'
-import type { SkillDefinition } from '../types/skill'
+import type { UnitDefinition } from "../types/unit";
+import type { EffectAction, SkillDefinition } from "../types/skill";
 
 export function validateGameData(
   units: UnitDefinition[],
   skills: Record<string, SkillDefinition>,
 ): string[] {
-  const errors: string[] = []
+  const errors: string[] = [];
 
   for (const unit of units) {
     for (const [reelIndex, reel] of unit.reels.entries()) {
       if (reel.length !== 6) {
         errors.push(
           `${unit.name} の ${reelIndex + 1} 番目のリールが6枠ではありません。現在 ${reel.length} 枠です。`,
-        )
+        );
       }
 
       for (const skillId of reel) {
         if (!skills[skillId]) {
           errors.push(
             `${unit.name} のリールに未定義の技ID "${skillId}" があります。`,
-          )
+          );
         }
       }
     }
@@ -10170,18 +11406,131 @@ export function validateGameData(
     if (!skills[unit.specialSkillId]) {
       errors.push(
         `${unit.name} の必殺技ID "${unit.specialSkillId}" が未定義です。`,
-      )
+      );
     }
 
     if (unit.reels.length > 4) {
       errors.push(
         `${unit.name} のリール数が4を超えています。現在 ${unit.reels.length} 個です。`,
-      )
+      );
     }
   }
 
-  return errors
+  const unitIds = new Set(
+    units.map((unit) => {
+      return unit.id;
+    }),
+  );
+
+  for (const skill of Object.values(skills)) {
+    for (const [effectIndex, effect] of skill.effects.entries()) {
+      validateEffectActions(
+        effect.actions,
+        skill,
+        effectIndex,
+        unitIds,
+        errors,
+        "actions",
+      );
+    }
+  }
+
+  return errors;
 }
+function validateEffectActions(
+  actions: EffectAction[],
+  skill: SkillDefinition,
+  effectIndex: number,
+  unitIds: Set<string>,
+  errors: string[],
+  actionPath: string,
+): void {
+  for (const [actionIndex, action] of actions.entries()) {
+    const currentPath = `${actionPath}[${actionIndex}]`;
+
+    switch (action.type) {
+      case "summon": {
+        if (!unitIds.has(action.unitId)) {
+          errors.push(
+            `${skill.name} のエフェクト${effectIndex + 1}、${currentPath}に未定義の召喚ユニットID "${action.unitId}" があります。`,
+          );
+        }
+
+        if (
+          action.targetTeam !== "self_team" &&
+          action.targetTeam !== "opponent_team"
+        ) {
+          errors.push(
+            `${skill.name} のエフェクト${effectIndex + 1}、${currentPath}のtargetTeamが不正です。`,
+          );
+        }
+
+        validateEffectActions(
+          action.actions ?? [],
+          skill,
+          effectIndex,
+          unitIds,
+          errors,
+          `${currentPath}.actions`,
+        );
+
+        break;
+      }
+
+      case "change_special_gauge": {
+        if (
+          action.targetTeam !== "self_team" &&
+          action.targetTeam !== "opponent_team"
+        ) {
+          errors.push(
+            `${skill.name} のエフェクト${effectIndex + 1}、${currentPath}のtargetTeamが不正です。`,
+          );
+        }
+
+        break;
+      }
+
+      case "random_action": {
+        validateEffectActions(
+          action.actions,
+          skill,
+          effectIndex,
+          unitIds,
+          errors,
+          `${currentPath}.actions`,
+        );
+
+        break;
+      }
+
+      case "conditional_action": {
+        validateEffectActions(
+          action.matchedActions,
+          skill,
+          effectIndex,
+          unitIds,
+          errors,
+          `${currentPath}.matchedActions`,
+        );
+
+        validateEffectActions(
+          action.unmatchedActions,
+          skill,
+          effectIndex,
+          unitIds,
+          errors,
+          `${currentPath}.unmatchedActions`,
+        );
+
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+}
+
 
 ==================================================
 FILE: src/main.ts
@@ -10594,6 +11943,12 @@ export interface BattleState {
   pendingTargetSelection: PendingTargetSelection | null;
   lastRolledReelSlot: UsedReelSlot | null;
   extraActionQueue: string[];
+
+  /**
+   * 召喚ユニットのinstanceIdを
+   * 戦闘中で一意にするための連番。
+   */
+  nextSummonSerial: number;
   reelProbabilityBiasEnabled: boolean;
 
   logs: string[];
@@ -10663,7 +12018,8 @@ export type Species =
   | "undead"
   | "angel"
   | "beast"
-  | "aquatic";
+  | "aquatic"
+  | "mythical_beast";
 
 export const speciesLabels: Record<Species, string> = {
   dragon: "ドラゴン",
@@ -10678,9 +12034,12 @@ export const speciesLabels: Record<Species, string> = {
   angel: "天使",
   beast: "獣",
   aquatic: "水族",
+  mythical_beast: "幻獣",
 };
 
 export type ItemId = string;
+
+export type TargetTeam = "self_team" | "opponent_team";
 
 
 ==================================================
@@ -10836,7 +12195,14 @@ export interface BattleSetup {
 ==================================================
 FILE: src/types/skill.ts
 ==================================================
-import type { Attribute, SkillId, Gender, Species } from "./common";
+import type {
+  Attribute,
+  SkillId,
+  Gender,
+  Species,
+  TargetTeam,
+  UnitId,
+} from "./common";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -10910,6 +12276,7 @@ export type EffectAction =
   | RemoveStatusEffectAction
   | RandomAction
   | ConditionalAction
+  | SummonAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -10956,8 +12323,49 @@ export interface ChangeReelAction {
 
 export interface GaugeAction {
   type: "change_special_gauge";
-  targetTeam: "ally" | "enemy" | "self_team" | "opponent_team";
+
+  /**
+   * 使用者基準で対象チームを指定する。
+   */
+  targetTeam: TargetTeam;
+
   amount: number;
+  chance?: number;
+}
+
+/**
+ * 戦闘不能になっているチーム枠へ、
+ * 指定したユニットを召喚する。
+ *
+ * この効果を技に設定するときは、
+ * 原則としてSkillEffect.targetをnoneにする。
+ */
+export interface SummonAction {
+  type: "summon";
+
+  /**
+   * 使用者から見た召喚先チーム。
+   */
+  targetTeam: TargetTeam;
+
+  /**
+   * 召喚するユニットのID。
+   */
+  unitId: UnitId;
+
+  /**
+   * 召喚に成功した後、
+   * 召喚ユニットを対象として順番に実行する効果。
+   *
+   * 未指定なら追加効果なし。
+   */
+  actions?: EffectAction[];
+
+  /**
+   * 召喚自体の発生確率。
+   *
+   * 未指定なら100%。
+   */
   chance?: number;
 }
 
@@ -11208,8 +12616,11 @@ export type SkillExecutionSource =
  *
  * reverse_team:
  *   敵と味方を反転した対象選択を使用する。
+ *
+ * randomize_single:
+ *   単体対象の技に対して、ランダムに1体を選択する。
  */
-export type TargetingMode = "normal" | "reverse_team";
+export type TargetingMode = "normal" | "reverse_team" | "randomize_single";
 
 /**
  * 1回の技実行中に維持する情報。
@@ -11299,7 +12710,10 @@ export type StatusEffectId =
   | "charged_attack"
   | "damage_chain"
   | "blessing"
-  | "curse";
+  | "curse"
+  | "attack_change"
+  | "speed_change"
+  | "trance";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -11325,7 +12739,9 @@ export type StatusEffectParams =
   | FrostbiteStatusParams
   | DamageChainStatusParams
   | BlessingStatusParams
-  | AppliedBlessingStatusParams;
+  | AppliedBlessingStatusParams
+  | AttackChangeStatusParams
+  | SpeedChangeStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -11485,6 +12901,73 @@ export type BlessingBattleStatusEffect = BattleStatusEffect & {
     healAmount: number;
   };
 };
+
+/**
+ * 能力変化の重複方式。
+ *
+ * same_skill:
+ *   同じ能力変化IDかつ同じ付与元技IDなら、
+ *   既存インスタンスを更新する。
+ *
+ * always_stack:
+ *   付与元技IDを問わず、必ず別インスタンスとして追加する。
+ */
+export type StatChangeStackingMode = "same_skill" | "always_stack";
+
+/**
+ * 攻撃変化・素早さ変化で指定する演算。
+ *
+ * flat:
+ *   現在値へvalueを加算する。
+ *
+ * multiplier:
+ *   現在値へvalueを乗算する。
+ */
+export type StatChangeOperation =
+  | {
+      kind: "flat";
+      value: number;
+    }
+  | {
+      kind: "multiplier";
+      value: number;
+    };
+
+export interface AttackChangeStatusParams {
+  type: "attack_change";
+  change: StatChangeOperation;
+  /**
+   * 未指定時はsame_skill。
+   */
+  stackingMode?: StatChangeStackingMode;
+}
+
+export interface SpeedChangeStatusParams {
+  type: "speed_change";
+  change: StatChangeOperation;
+  /**
+   * 未指定時はsame_skill。
+   */
+  stackingMode?: StatChangeStackingMode;
+}
+
+export type StatChangeStatusParams =
+  | AttackChangeStatusParams
+  | SpeedChangeStatusParams;
+
+export type AttackChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "attack_change";
+  params: AttackChangeStatusParams;
+};
+
+export type SpeedChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "speed_change";
+  params: SpeedChangeStatusParams;
+};
+
+export type StatChangeBattleStatusEffect =
+  | AttackChangeBattleStatusEffect
+  | SpeedChangeBattleStatusEffect;
 
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";
 

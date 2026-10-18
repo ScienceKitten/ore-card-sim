@@ -2,7 +2,11 @@ import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
-import { addSpecialGauge, getTargetTeam } from "./battleQueries";
+import {
+  addSpecialGauge,
+  getTargetTeam,
+  resolveTargetTeam,
+} from "./battleQueries";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -17,7 +21,10 @@ import type { SkillId } from "../types/common";
 import { applyHealing } from "./healing";
 import type { EffectOrigin } from "../types/effectExecution";
 import { applyBattleDamage } from "./battleDamage";
-import type { DamageResolutionState } from "../types/skillExecution";
+import type {
+  DamageResolutionState,
+  TargetingMode,
+} from "../types/skillExecution";
 
 interface EffectContext {
   state: BattleState;
@@ -41,6 +48,7 @@ interface EffectContext {
    * 一連の技・直接効果内で共有する死亡保留情報。
    */
   damageResolution: DamageResolutionState;
+  targetingMode: TargetingMode;
 }
 
 export function applyEffectAction(
@@ -313,11 +321,25 @@ function applyGaugeChange(
   amount: number,
   context: EffectContext,
 ): void {
-  const team = getTargetTeam(context.state, context.actor, targetTeam);
+  const resolvedTargetTeam = resolveTargetTeam(
+    targetTeam,
+    context.targetingMode,
+  );
+
+  const team = getTargetTeam(
+    context.state,
+    context.actor,
+    targetTeam,
+    context.targetingMode,
+  );
 
   addSpecialGauge(team, amount);
 
-  if (targetTeam === "self_team") {
+  /**
+   * ログも技データ上の指定ではなく、
+   * 混乱反転後の実際の対象チームを基準にする。
+   */
+  if (resolvedTargetTeam === "self_team") {
     context.state.logs.unshift(
       `${context.actor.definition.name} 側の必殺技ゲージが ${amount} 変化した。`,
     );

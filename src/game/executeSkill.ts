@@ -1,4 +1,9 @@
-import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
+import type {
+  BattleState,
+  BattleTeam,
+  BattleUnit,
+  UsedReelSlot,
+} from "../types/battle";
 import { units } from "../data/units";
 import type { CounterEvent } from "../types/counter";
 import type {
@@ -686,6 +691,12 @@ function applySkillAction(
       },
       usedReelSlot,
       damageResolution: executionInfo.damageResolution,
+
+      /**
+       * 混乱の30%救済が有効になった場合はnormal、
+       * それ以外は技開始時に確定したモードを使用する。
+       */
+      targetingMode: getEffectiveTargetingMode(executionInfo),
     });
 
     return;
@@ -727,6 +738,7 @@ function applySkillAction(
     },
     usedReelSlot,
     damageResolution: executionInfo.damageResolution,
+    targetingMode: getEffectiveTargetingMode(executionInfo),
   });
 }
 
@@ -1063,7 +1075,12 @@ function applySummonAction(
     return;
   }
 
-  const targetTeam = getTargetTeam(state, actor, action.targetTeam);
+  const targetTeam = getTargetTeam(
+    state,
+    actor,
+    action.targetTeam,
+    getEffectiveTargetingMode(executionInfo),
+  );
 
   const summonSlot = findSummonSlot(targetTeam, executionInfo);
 
@@ -1168,7 +1185,7 @@ const summonPositionPriority = ["leader", "left", "right"] as const;
  * 召喚対象にしない。
  */
 function findSummonSlot(
-  targetTeam: ReturnType<typeof getTargetTeam>,
+  targetTeam: BattleTeam,
   executionInfo: SkillExecutionInfo,
 ): {
   index: number;

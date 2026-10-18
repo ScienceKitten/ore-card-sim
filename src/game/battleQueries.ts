@@ -1,5 +1,6 @@
 import type { BattleState, BattleTeam, BattleUnit } from "../types/battle";
 import type { TargetTeam, TeamSide } from "../types/common";
+import type { TargetingMode } from "../types/skillExecution";
 
 export function getAllBattleUnits(state: BattleState): BattleUnit[] {
   return [...state.allyTeam.units, ...state.enemyTeam.units];
@@ -92,16 +93,59 @@ export function getSpecialGaugeConsumption(unit: BattleUnit): number {
  * 召喚、必殺技ゲージ変更など、
  * チームを直接対象とする効果で共通利用する。
  */
+/**
+ * TargetTeamと対象選択モードから、
+ * 実際の戦闘チームを取得する。
+ *
+ * TargetTeamを使用する実行効果は、
+ * 必ずこの関数を経由して対象チームを取得する。
+ *
+ * これにより、今後TargetTeamを使用する
+ * 新しい実行効果を追加した場合も、
+ * targetingModeを渡すだけで混乱による反転が適用される。
+ */
 export function getTargetTeam(
   state: BattleState,
   actor: BattleUnit,
   targetTeam: TargetTeam,
+  targetingMode: TargetingMode,
 ): BattleTeam {
-  switch (targetTeam) {
+  const resolvedTargetTeam = resolveTargetTeam(targetTeam, targetingMode);
+
+  switch (resolvedTargetTeam) {
     case "self_team":
       return getOwnTeam(state, actor);
 
     case "opponent_team":
       return getOpponentTeam(state, actor);
   }
+}
+
+/**
+ * 技データに指定されたTargetTeamを、
+ * 現在の対象選択モードに従って変換する。
+ *
+ * 混乱のreverse_teamでは、
+ * self_teamとopponent_teamを反転する。
+ *
+ * normal:
+ *   変更しない。
+ *
+ * reverse_team:
+ *   self_team      -> opponent_team
+ *   opponent_team  -> self_team
+ *
+ * randomize_single:
+ *   ユニット単体対象だけをランダム化する
+ *   トランス用モードなので、チーム対象は変更しない。
+ */
+export function resolveTargetTeam(
+  targetTeam: TargetTeam,
+  targetingMode: TargetingMode,
+): TargetTeam {
+  if (targetingMode !== "reverse_team") {
+    return targetTeam;
+  }
+
+  return targetTeam === "self_team" ? "opponent_team" : "self_team";
 }
