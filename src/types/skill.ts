@@ -81,6 +81,7 @@ export type EffectAction =
   | RandomAction
   | ConditionalAction
   | SummonAction
+  | InstantDeathAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -433,6 +434,27 @@ export interface ReduceHpRateAction {
 
   /**
    * 効果の発生確率。
+   *
+   * 1 = 100%
+   * 0.5 = 50%
+   *
+   * 未指定時は100%。
+   */
+  chance?: number;
+}
+
+/**
+ * 対象のHPを直接0にする即死効果。
+ *
+ * この効果はダメージとして扱わない。
+ *
+ * アンデッド、または即死無効を持つ対象には無効。
+ */
+export interface InstantDeathAction {
+  type: "instant_death";
+
+  /**
+   * 対象ごとの成功確率。
    *
    * 1 = 100%
    * 0.5 = 50%

@@ -22,7 +22,8 @@ export type StatusEffectId =
   | "attack_change"
   | "speed_change"
   | "defense_change"
-  | "trance";
+  | "trance"
+  | "instant_death_immunity";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;

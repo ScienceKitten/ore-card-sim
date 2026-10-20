@@ -4,6 +4,7 @@ import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
 import {
   addSpecialGauge,
+  getOwnTeam,
   getTargetTeam,
   resolveTargetTeam,
 } from "./battleQueries";
@@ -15,6 +16,7 @@ import type {
 import {
   addStatusEffect,
   getStatusEffectName,
+  hasStatusEffect,
   removeStatusEffectsByCondition,
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
@@ -165,6 +167,10 @@ export function applyEffectAction(
       }
 
       applyDrain(action, targets, context);
+      return;
+
+    case "instant_death":
+      applyInstantDeath(action, targets, context);
       return;
 
     case "do_nothing":
@@ -708,5 +714,98 @@ function applyReduceHpRate(
         target.instanceId,
       );
     }
+  }
+}
+
+/**
+ * 対象へ即死効果を適用する。
+ *
+ * 即死はダメージではないため、
+ * applyBattleDamage()を使用しない。
+ *
+ * 複数対象の場合は、対象ごとに個別に
+ * 成功確率を判定する。
+ */
+function applyInstantDeath(
+  action: Extract<
+    EffectAction,
+    {
+      type: "instant_death";
+    }
+  >,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  for (const target of targets) {
+    /**
+     * 対象ごとに確率判定する。
+     */
+    if (!rollChance(action.chance ?? 1)) {
+      context.state.logs.unshift(
+        `しかし、${target.definition.name}への即死効果は発生しなかった。`,
+      );
+      continue;
+    }
+
+    /**
+     * すでにHP0の対象には適用しない。
+     *
+     * 成功時ゲージを重複して獲得することを防ぐ。
+     */
+    if (target.currentHp <= 0) {
+      context.state.logs.unshift(
+        `しかし、${target.definition.name}はすでに倒れている。`,
+      );
+      continue;
+    }
+
+    /**
+     * アンデッドには即死が無効。
+     */
+    if (target.definition.species === "undead") {
+      context.state.logs.unshift(
+        `${target.definition.name}には即死が効かなかった。`,
+      );
+      continue;
+    }
+
+    /**
+     * 即死無効を持つ場合も無効。
+     *
+     * 即死無効は消費しない。
+     */
+    if (hasStatusEffect(target, "instant_death_immunity")) {
+      context.state.logs.unshift(
+        `${target.definition.name}は即死を無効化した。`,
+      );
+      continue;
+    }
+
+    /**
+     * HPを直接0にする。
+     *
+     * ダメージ処理ではないため、
+     * calculateDamage()やapplyBattleDamage()は使用しない。
+     */
+    target.currentHp = 0;
+
+    /**
+     * 技全体の処理が終わるまで
+     * 死亡確定を保留する。
+     */
+    context.damageResolution.pendingDefeatUnitInstanceIds.add(
+      target.instanceId,
+    );
+
+    /**
+     * 即死成功時の追加ゲージ。
+     *
+     * 即死を受けた対象側のチームへ1加算する。
+     *
+     * 死亡確定時のゲージ増加とは別。
+     */
+    addSpecialGauge(getOwnTeam(context.state, target), 1);
+
+    context.state.logs.unshift(`${target.definition.name}は即死した！`);
   }
 }

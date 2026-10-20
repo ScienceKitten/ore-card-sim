@@ -1073,7 +1073,7 @@ export const units: UnitDefinition[] = [
         "attack_power1",
       ],
     ],
-    specialSkillId: "attack",
+    specialSkillId: "breath_of_decadal_petrifaction",
     specialGaugeConsumption: 6,
   },
   {

@@ -133,4 +133,10 @@ export const statusEffectDefinitions: Record<
     category: "harmful",
     defaultDuration: 3,
   },
+  instant_death_immunity: {
+    id: "instant_death_immunity",
+    name: "即死無効",
+    category: "benefit",
+    defaultDuration: 99,
+  },
 };

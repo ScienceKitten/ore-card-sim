@@ -445,6 +445,28 @@ function getSkillName(
   return sourceId;
 }
 
+import type {
+  StatusEffectCategory,
+} from "./types/statusEffect";
+
+/**
+ * 状態異常の分類に対応する表示色を返す。
+ */
+function getStatusEffectColorClass(
+  category?: StatusEffectCategory,
+): string {
+  switch (category) {
+    case "harmful":
+      return "border border-red-700 bg-red-950 text-red-200";
+
+    case "benefit":
+      return "border border-green-700 bg-green-950 text-green-200";
+
+    default:
+      return "border border-purple-700 bg-purple-950 text-purple-200";
+  }
+}
+
 </script>
 
 <template>
@@ -519,7 +541,8 @@ function getSkillName(
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
                     <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
                       :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
-                      class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
+                      class="rounded-full px-2 py-0.5 text-xs font-bold"
+                      :class="getStatusEffectColorClass(statusEffect.category)">
                       {{ getStatusEffectName(statusEffect.id)
                       }}{{ getStatusEffectValueText(statusEffect)
                       }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
@@ -623,7 +646,8 @@ function getSkillName(
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
                     <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
                       :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
-                      class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
+                      class="rounded-full px-2 py-0.5 text-xs font-bold"
+                      :class="getStatusEffectColorClass(statusEffect.category)">
                       {{ getStatusEffectName(statusEffect.id)
                       }}{{ getStatusEffectValueText(statusEffect)
                       }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{

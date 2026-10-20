@@ -1439,8 +1439,7 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "single_enemy" },
         actions: [
           {
-            type: "damage",
-            multiplier: 10000,
+            type: "instant_death",
             chance: 0.6,
           },
         ],
@@ -1847,6 +1846,10 @@ export const skills: Record<string, SkillDefinition> = {
               multiplier: 0.5,
             },
           },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "instant_death_immunity",
+          },
         ],
       },
     ],
@@ -1863,6 +1866,11 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 2.2,
+          },
+          {
+            type: "reduce_hp_rate",
+            rate: 1,
+            chance: 0.1,
           },
         ],
       },
@@ -2073,21 +2081,7 @@ export const skills: Record<string, SkillDefinition> = {
         },
         actions: [
           {
-            type: "conditional_action",
-            conditions: {
-              species: ["undead"],
-            },
-            matchedActions: [
-              {
-                type: "do_nothing",
-              },
-            ],
-            unmatchedActions: [
-              {
-                type: "damage",
-                multiplier: 100000,
-              },
-            ],
+            type: "instant_death",
           },
         ],
       },
@@ -2174,8 +2168,7 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "self" },
         actions: [
           {
-            type: "damage",
-            multiplier: 1000,
+            type: "instant_death",
           },
         ],
       },
@@ -2219,8 +2212,7 @@ export const skills: Record<string, SkillDefinition> = {
             },
             matchedActions: [
               {
-                type: "damage",
-                multiplier: 100000,
+                type: "instant_death",
               },
             ],
             unmatchedActions: [
@@ -2356,8 +2348,7 @@ export const skills: Record<string, SkillDefinition> = {
                 duration: 1,
               },
               {
-                type: "damage",
-                multiplier: 100000,
+                type: "instant_death",
               },
             ],
           },
@@ -2411,6 +2402,28 @@ export const skills: Record<string, SkillDefinition> = {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
             chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  breath_of_decadal_petrifaction: {
+    id: "breath_of_decadal_petrifaction",
+    name: "十年石化の息",
+    attributes: ["earth"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.3,
+          },
+          {
+            type: "reduce_hp_rate",
+            rate: 1,
+            chance: 0.25,
           },
         ],
       },
