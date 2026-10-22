@@ -275,8 +275,10 @@ export function finalizePendingDefeats(
     }
 
     /**
-     * 処理途中で回復してHPが戻った場合は、
-     * 戦闘不能にしない。
+     * 技やカウンターの処理途中で回復し、
+     * HPが1以上へ戻った場合は死亡を確定しない。
+     *
+     * この場合、状態異常も解除しない。
      */
     if (unit.currentHp > 0) {
       continue;
@@ -285,7 +287,8 @@ export function finalizePendingDefeats(
     state.logs.unshift(`${unit.definition.name} は倒れた。`);
 
     /**
-     * 撃破時ゲージはユニットごとに1回だけ。
+     * 死亡時の必殺技ゲージ増加は
+     * ユニットごとに1回だけ行う。
      */
     if (
       !damageResolution.defeatGaugeAwardedUnitInstanceIds.has(unit.instanceId)
@@ -294,6 +297,15 @@ export function finalizePendingDefeats(
 
       damageResolution.defeatGaugeAwardedUnitInstanceIds.add(unit.instanceId);
     }
+
+    /**
+     * 死亡が確定したユニットが持つ
+     * すべての状態異常を解除する。
+     *
+     * harmful、benefit、neutral、exceptの
+     * 分類を問わず、すべて削除する。
+     */
+    unit.statusEffects = [];
   }
 
   damageResolution.pendingDefeatUnitInstanceIds.clear();

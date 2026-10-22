@@ -139,4 +139,10 @@ export const statusEffectDefinitions: Record<
     category: "benefit",
     defaultDuration: 99,
   },
+  cover: {
+    id: "cover",
+    name: "かばう",
+    category: "except",
+    defaultDuration: 2,
+  },
 };

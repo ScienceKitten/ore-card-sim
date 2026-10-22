@@ -594,6 +594,26 @@ export const skills: Record<string, SkillDefinition> = {
     ],
   },
 
+  cover: {
+    id: "cover",
+    name: "かばう",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: {
+          type: "self",
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "cover",
+          },
+        ],
+      },
+    ],
+  },
+
   ex_plus_1: {
     id: "ex_plus_1",
     name: "EXゲージ+1",
@@ -979,6 +999,25 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.8,
+          },
+        ],
+      },
+    ],
+  },
+
+  flash_flood_gun: {
+    id: "flash_flood_gun",
+    name: "鉄砲水鉄砲",
+    attributes: ["water"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 3.5,
+            variance: 0.42,
           },
         ],
       },

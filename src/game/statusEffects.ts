@@ -685,6 +685,21 @@ function resolveIncompatibleStatusEffects(
   const target = input.target;
 
   /**
+   * 混乱または麻痺中のユニットには、
+   * かばうを付与できない。
+   */
+  if (
+    input.statusEffectId === "cover" &&
+    (hasStatusEffect(target, "confusion") ||
+      hasStatusEffect(target, "paralysis"))
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} は混乱または麻痺しているため、かばう状態になれなかった。`,
+    );
+
+    return false;
+  }
+  /**
    * トランス中に混乱を付与しようとした場合、
    * 混乱は付与せず、トランスを維持する。
    *
@@ -725,6 +740,18 @@ function resolveIncompatibleStatusEffects(
    * 既存の混乱・チャージ攻撃の排他処理
    */
   if (input.statusEffectId === "confusion") {
+    const hadCover = hasStatusEffect(target, "cover");
+
+    if (hadCover) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "cover";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} のかばうは混乱により解除された。`,
+      );
+    }
+
     const hasChargedAttack = target.statusEffects.some((statusEffect) => {
       return statusEffect.id === "charged_attack";
     });
@@ -751,6 +778,20 @@ function resolveIncompatibleStatusEffects(
     );
 
     return false;
+  }
+
+  if (input.statusEffectId === "paralysis") {
+    const hadCover = hasStatusEffect(target, "cover");
+
+    if (hadCover) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "cover";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} のかばうは麻痺により解除された。`,
+      );
+    }
   }
 
   /*
@@ -1598,4 +1639,11 @@ function addDefenseChangeStatusEffect(input: AddStatusEffectInput): void {
       incomingParams,
     )}・${existing.remainingTurns}ターンに更新された。`,
   );
+}
+
+/**
+ * ユニットが「かばう」状態かを返す。
+ */
+export function isCovering(unit: BattleUnit): boolean {
+  return hasStatusEffect(unit, "cover");
 }

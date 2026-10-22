@@ -44,6 +44,7 @@ import {
   getSkillSealMessage,
   hasStatusEffect,
   isConfused,
+  isCovering,
   isSkillSealedByStatus,
   isTranced,
   resolveFrostbiteOnReelSelection,
@@ -608,17 +609,37 @@ function applySkillEffect(
   counterEvents: CounterEvent[],
   executionInfo: SkillExecutionInfo,
 ): void {
+  const isTargetless = effect.target.type === "none";
+
+  /**
+   * 対象なし効果には、
+   * かばうを適用しない。
+   *
+   * 召喚やTargetTeamによる
+   * チーム対象効果も変更しない。
+   */
+  const resolvedTargets = isTargetless
+    ? targets
+    : resolveCoverTargets(state, actor, targets, executionInfo);
+
+  /**
+   * 同じSkillEffect内のすべてのactionへ、
+   * 同一の変換後対象を渡す。
+   *
+   * これにより、「対象選択」の置き換えとして
+   * 一貫した挙動になる。
+   */
   for (const action of effect.actions) {
     applySkillAction(
       state,
       actor,
       skill,
       action,
-      targets,
+      resolvedTargets,
       usedReelSlot,
       counterEvents,
       executionInfo,
-      effect.target.type === "none",
+      isTargetless,
     );
   }
 }
@@ -1213,4 +1234,90 @@ function findSummonSlot(
   }
 
   return null;
+}
+
+/**
+ * 指定されたユニットと同じチームにいる、
+ * かばう状態のユニットを取得する。
+ *
+ * 現在の技処理開始時に生存していたユニットは、
+ * 技の途中でHP0になっていても候補に残す。
+ *
+ * これにより、1回目の効果でかばうユニットが
+ * HP0になっても、その技の残りの対象をかばえる。
+ */
+function getCoveringUnits(
+  state: BattleState,
+  protectedTarget: BattleUnit,
+  executionInfo: SkillExecutionInfo,
+): BattleUnit[] {
+  const team =
+    protectedTarget.side === "ally" ? state.allyTeam : state.enemyTeam;
+
+  return team.units.filter((unit) => {
+    return (
+      executionInfo.damageResolution.initiallyAliveUnitInstanceIds.has(
+        unit.instanceId,
+      ) && isCovering(unit)
+    );
+  });
+}
+
+/**
+ * 相手チームの技による対象を、
+ * かばう状態のユニットへ置き換える。
+ *
+ * 配列の要素数と重複は維持する。
+ */
+function resolveCoverTargets(
+  state: BattleState,
+  actor: BattleUnit,
+  targets: BattleUnit[],
+  executionInfo: SkillExecutionInfo,
+): BattleUnit[] {
+  return targets.map((originalTarget) => {
+    /**
+     * 味方チームの技はかばわない。
+     *
+     * actorと対象が同じチームなら、
+     * 元の対象をそのまま返す。
+     */
+    if (originalTarget.side === actor.side) {
+      return originalTarget;
+    }
+
+    /**
+     * かばう状態のユニット自身への効果は、
+     * 別のユニットがかばわない。
+     */
+    if (isCovering(originalTarget)) {
+      return originalTarget;
+    }
+
+    const coveringUnits = getCoveringUnits(
+      state,
+      originalTarget,
+      executionInfo,
+    );
+
+    /**
+     * かばうユニットがいなければ、
+     * 元の対象をそのまま使用する。
+     */
+    if (coveringUnits.length === 0) {
+      return originalTarget;
+    }
+
+    /**
+     * 複数いる場合は、
+     * 対象1件ごとにランダムで選ぶ。
+     */
+    const coveringUnit = randomChoice(coveringUnits);
+
+    state.logs.unshift(
+      `${coveringUnit.definition.name} は${originalTarget.definition.name}をかばった！`,
+    );
+
+    return coveringUnit;
+  });
 }

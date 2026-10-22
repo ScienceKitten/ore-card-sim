@@ -2,7 +2,7 @@
 PROJECT SOURCE EXPORT
 ==================================================
 Project root: C:\Development\webweb\webgame-ts
-Exported at: 2026-10-18 21:03:09
+Exported at: 2026-10-22 22:09:23
 Source file count: 47
 
 ==================================================
@@ -583,6 +583,28 @@ function getSkillName(
   return sourceId;
 }
 
+import type {
+  StatusEffectCategory,
+} from "./types/statusEffect";
+
+/**
+ * 状態異常の分類に対応する表示色を返す。
+ */
+function getStatusEffectColorClass(
+  category?: StatusEffectCategory,
+): string {
+  switch (category) {
+    case "harmful":
+      return "border border-red-700 bg-red-950 text-red-200";
+
+    case "benefit":
+      return "border border-green-700 bg-green-950 text-green-200";
+
+    default:
+      return "border border-purple-700 bg-purple-950 text-purple-200";
+  }
+}
+
 </script>
 
 <template>
@@ -657,7 +679,8 @@ function getSkillName(
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
                     <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
                       :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
-                      class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
+                      class="rounded-full px-2 py-0.5 text-xs font-bold"
+                      :class="getStatusEffectColorClass(statusEffect.category)">
                       {{ getStatusEffectName(statusEffect.id)
                       }}{{ getStatusEffectValueText(statusEffect)
                       }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
@@ -761,7 +784,8 @@ function getSkillName(
                   <div v-if="unit.statusEffects.length > 0" class="mt-2 flex flex-wrap gap-2">
                     <span v-for="(statusEffect, statusIndex) in unit.statusEffects"
                       :key="`${statusEffect.id}-${statusEffect.sourceSkillId}-${statusIndex}`"
-                      class="rounded-full bg-purple-950 px-2 py-0.5 text-xs font-bold text-purple-200">
+                      class="rounded-full px-2 py-0.5 text-xs font-bold"
+                      :class="getStatusEffectColorClass(statusEffect.category)">
                       {{ getStatusEffectName(statusEffect.id)
                       }}{{ getStatusEffectValueText(statusEffect)
                       }}-{{ getSkillName(statusEffect.sourceSkillId) }}（{{
@@ -3318,8 +3342,7 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "single_enemy" },
         actions: [
           {
-            type: "damage",
-            multiplier: 10000,
+            type: "instant_death",
             chance: 0.6,
           },
         ],
@@ -3716,6 +3739,20 @@ export const skills: Record<string, SkillDefinition> = {
               attackMultiplier: 0.6,
             },
           },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "defense_change",
+            category: "benefit",
+            duration: 99,
+            params: {
+              type: "defense_change",
+              multiplier: 0.5,
+            },
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "instant_death_immunity",
+          },
         ],
       },
     ],
@@ -3732,6 +3769,11 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 2.2,
+          },
+          {
+            type: "reduce_hp_rate",
+            rate: 1,
+            chance: 0.1,
           },
         ],
       },
@@ -3942,21 +3984,7 @@ export const skills: Record<string, SkillDefinition> = {
         },
         actions: [
           {
-            type: "conditional_action",
-            conditions: {
-              species: ["undead"],
-            },
-            matchedActions: [
-              {
-                type: "do_nothing",
-              },
-            ],
-            unmatchedActions: [
-              {
-                type: "damage",
-                multiplier: 100000,
-              },
-            ],
+            type: "instant_death",
           },
         ],
       },
@@ -4043,8 +4071,7 @@ export const skills: Record<string, SkillDefinition> = {
         target: { type: "self" },
         actions: [
           {
-            type: "damage",
-            multiplier: 1000,
+            type: "instant_death",
           },
         ],
       },
@@ -4066,6 +4093,42 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "heal_block",
+          },
+        ],
+      },
+    ],
+  },
+  urge_of_the_underworld: {
+    id: "urge_of_the_underworld",
+    name: "黄泉の欲動",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              statusEffectIds: ["curse"],
+            },
+            matchedActions: [
+              {
+                type: "instant_death",
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "reduce_hp_rate",
+                rate: 0.75,
+              },
+              {
+                type: "apply_status_effect",
+                statusEffectId: "heal_block",
+                duration: 99,
+              },
+            ],
           },
         ],
       },
@@ -4155,6 +4218,15 @@ export const skills: Record<string, SkillDefinition> = {
           },
         ],
       },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "reduce_hp_rate",
+            rate: 0.4,
+          },
+        ],
+      },
     ],
   },
   star_collapsion: {
@@ -4179,8 +4251,7 @@ export const skills: Record<string, SkillDefinition> = {
                 duration: 1,
               },
               {
-                type: "damage",
-                multiplier: 100000,
+                type: "instant_death",
               },
             ],
           },
@@ -4234,6 +4305,28 @@ export const skills: Record<string, SkillDefinition> = {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
             chance: 0.5,
+          },
+        ],
+      },
+    ],
+  },
+  breath_of_decadal_petrifaction: {
+    id: "breath_of_decadal_petrifaction",
+    name: "十年石化の息",
+    attributes: ["earth"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.3,
+          },
+          {
+            type: "reduce_hp_rate",
+            rate: 1,
+            chance: 0.25,
           },
         ],
       },
@@ -4367,11 +4460,24 @@ export const statusEffectDefinitions: Record<
     defaultDuration: 99,
   },
 
+  defense_change: {
+    id: "defense_change",
+    name: "防御変化",
+    category: "harmful",
+    defaultDuration: 3,
+  },
+
   trance: {
     id: "trance",
     name: "トランス",
     category: "harmful",
     defaultDuration: 3,
+  },
+  instant_death_immunity: {
+    id: "instant_death_immunity",
+    name: "即死無効",
+    category: "benefit",
+    defaultDuration: 99,
   },
 };
 
@@ -5491,7 +5597,7 @@ export const units: UnitDefinition[] = [
         "fetter_of_causality",
       ],
     ],
-    specialSkillId: "miss",
+    specialSkillId: "urge_of_the_underworld",
   },
   {
     id: "bone",
@@ -5512,7 +5618,7 @@ export const units: UnitDefinition[] = [
         "attack_power1",
       ],
     ],
-    specialSkillId: "attack",
+    specialSkillId: "breath_of_decadal_petrifaction",
     specialGaugeConsumption: 6,
   },
   {
@@ -5650,7 +5756,7 @@ export const units: UnitDefinition[] = [
     gender: "male",
     reels: [
       ["miss", "attack_power1", "reel_up", "reel_up", "reel_up", "reel_up"],
-      ["miss", "charge", "clay_burst", "void_sword", "void_sword", "reel_up"],
+      ["miss", "charge", "clay_burst", "reel_up", "reel_up", "reel_up"],
       ["miss", "clay_burst", "reel_up", "reel_up", "reel_up", "reel_up"],
       [
         "attack",
@@ -5687,7 +5793,7 @@ export const units: UnitDefinition[] = [
 
   {
     id: "test_mage",
-    name: "テストメイジ",
+    name: "テスト混乱",
     maxHp: 999,
     attack: 10,
     speed: 98,
@@ -6154,8 +6260,10 @@ export function finalizePendingDefeats(
     }
 
     /**
-     * 処理途中で回復してHPが戻った場合は、
-     * 戦闘不能にしない。
+     * 技やカウンターの処理途中で回復し、
+     * HPが1以上へ戻った場合は死亡を確定しない。
+     *
+     * この場合、状態異常も解除しない。
      */
     if (unit.currentHp > 0) {
       continue;
@@ -6164,7 +6272,8 @@ export function finalizePendingDefeats(
     state.logs.unshift(`${unit.definition.name} は倒れた。`);
 
     /**
-     * 撃破時ゲージはユニットごとに1回だけ。
+     * 死亡時の必殺技ゲージ増加は
+     * ユニットごとに1回だけ行う。
      */
     if (
       !damageResolution.defeatGaugeAwardedUnitInstanceIds.has(unit.instanceId)
@@ -6173,6 +6282,15 @@ export function finalizePendingDefeats(
 
       damageResolution.defeatGaugeAwardedUnitInstanceIds.add(unit.instanceId);
     }
+
+    /**
+     * 死亡が確定したユニットが持つ
+     * すべての状態異常を解除する。
+     *
+     * harmful、benefit、neutral、exceptの
+     * 分類を問わず、すべて削除する。
+     */
+    unit.statusEffects = [];
   }
 
   damageResolution.pendingDefeatUnitInstanceIds.clear();
@@ -6186,6 +6304,7 @@ FILE: src/game/battleQueries.ts
 ==================================================
 import type { BattleState, BattleTeam, BattleUnit } from "../types/battle";
 import type { TargetTeam, TeamSide } from "../types/common";
+import type { TargetingMode } from "../types/skillExecution";
 
 export function getAllBattleUnits(state: BattleState): BattleUnit[] {
   return [...state.allyTeam.units, ...state.enemyTeam.units];
@@ -6278,18 +6397,61 @@ export function getSpecialGaugeConsumption(unit: BattleUnit): number {
  * 召喚、必殺技ゲージ変更など、
  * チームを直接対象とする効果で共通利用する。
  */
+/**
+ * TargetTeamと対象選択モードから、
+ * 実際の戦闘チームを取得する。
+ *
+ * TargetTeamを使用する実行効果は、
+ * 必ずこの関数を経由して対象チームを取得する。
+ *
+ * これにより、今後TargetTeamを使用する
+ * 新しい実行効果を追加した場合も、
+ * targetingModeを渡すだけで混乱による反転が適用される。
+ */
 export function getTargetTeam(
   state: BattleState,
   actor: BattleUnit,
   targetTeam: TargetTeam,
+  targetingMode: TargetingMode,
 ): BattleTeam {
-  switch (targetTeam) {
+  const resolvedTargetTeam = resolveTargetTeam(targetTeam, targetingMode);
+
+  switch (resolvedTargetTeam) {
     case "self_team":
       return getOwnTeam(state, actor);
 
     case "opponent_team":
       return getOpponentTeam(state, actor);
   }
+}
+
+/**
+ * 技データに指定されたTargetTeamを、
+ * 現在の対象選択モードに従って変換する。
+ *
+ * 混乱のreverse_teamでは、
+ * self_teamとopponent_teamを反転する。
+ *
+ * normal:
+ *   変更しない。
+ *
+ * reverse_team:
+ *   self_team      -> opponent_team
+ *   opponent_team  -> self_team
+ *
+ * randomize_single:
+ *   ユニット単体対象だけをランダム化する
+ *   トランス用モードなので、チーム対象は変更しない。
+ */
+export function resolveTargetTeam(
+  targetTeam: TargetTeam,
+  targetingMode: TargetingMode,
+): TargetTeam {
+  if (targetingMode !== "reverse_team") {
+    return targetTeam;
+  }
+
+  return targetTeam === "self_team" ? "opponent_team" : "self_team";
 }
 
 
@@ -6519,6 +6681,13 @@ function applyCounterActionsToAttacker(
       },
       usedReelSlot: null,
       damageResolution,
+
+      /**
+       * カウンターは技の通常対象選択を
+       * 経由しない直接効果なので、
+       * 混乱によるTargetTeam反転は行わない。
+       */
+      targetingMode: "normal",
     });
   }
 }
@@ -6541,6 +6710,12 @@ function applyCounterActionsToSelf(
       },
       usedReelSlot: null,
       damageResolution,
+
+      /**
+       * カウンターの直接効果には、
+       * 技使用時の混乱対象変更を適用しない。
+       */
+      targetingMode: "normal",
     });
   }
 }
@@ -6924,7 +7099,7 @@ import {
 } from "../data/attributeChart";
 import { randomVariance } from "../utils/random";
 import type { EffectOrigin } from "../types/effectExecution";
-import { getEffectiveAttack } from "./statChanges";
+import { getDefenseDamageMultiplier, getEffectiveAttack } from "./statChanges";
 
 const DAMAGE_MIN = 1;
 const DAMAGE_MAX = 999;
@@ -6944,9 +7119,19 @@ export interface DamageCalculationResult {
   multiplier: number;
   variance: number;
   attributeMultiplier: number;
+
+  /**
+   * 技由来ダメージに適用された
+   * 防御変化倍率の積。
+   *
+   * 技を介さないダメージでは1。
+   */
+  defenseChangeMultiplier: number;
+
   finalMultiplier: number;
   skillAttributes: Attribute[];
   defenderAttribute: Attribute;
+
   /**
    * アンデッドに対する技カテゴリ補正。
    */
@@ -7012,8 +7197,20 @@ export function calculateDamage(
     input.origin,
   );
 
+  const defenseChangeMultiplier = calculateDefenseChangeMultiplier(
+    input.defender,
+    input.origin,
+  );
+
+  /**
+   * 防御変化倍率とアンデッド倍率は
+   * 互いに独立して乗算する。
+   */
   const finalMultiplier =
-    multiplier * attributeMultiplier * undeadCategoryMultiplier;
+    multiplier *
+    attributeMultiplier *
+    undeadCategoryMultiplier *
+    defenseChangeMultiplier;
 
   const baseDamage = attackValue * finalMultiplier;
 
@@ -7031,6 +7228,7 @@ export function calculateDamage(
     variance,
     attributeMultiplier,
     undeadCategoryMultiplier,
+    defenseChangeMultiplier,
     finalMultiplier,
     skillAttributes: input.skill.attributes,
     defenderAttribute: input.defender.definition.attribute,
@@ -7085,6 +7283,25 @@ export function calculateUndeadSkillCategoryMultiplier(
   }
 }
 
+/**
+ * 技由来のダメージへ適用する
+ * 防御変化倍率を返す。
+ *
+ * カウンター、毒、猛毒、凍傷、
+ * ダメージチェーンなど、
+ * 技を介さないダメージには適用しない。
+ */
+export function calculateDefenseChangeMultiplier(
+  defender: BattleUnit,
+  origin: EffectOrigin,
+): number {
+  if (origin.type !== "skill") {
+    return 1;
+  }
+
+  return getDefenseDamageMultiplier(defender);
+}
+
 
 ==================================================
 FILE: src/game/effectHandlers.ts
@@ -7093,7 +7310,12 @@ import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
 import type { EffectAction, SkillDefinition } from "../types/skill";
 import { rollChance } from "../utils/random";
 import { calculateDamage, getAttributeEffectivenessText } from "./damage";
-import { addSpecialGauge, getTargetTeam } from "./battleQueries";
+import {
+  addSpecialGauge,
+  getOwnTeam,
+  getTargetTeam,
+  resolveTargetTeam,
+} from "./battleQueries";
 import type {
   StatusEffectCategory,
   StatusEffectId,
@@ -7102,13 +7324,17 @@ import type {
 import {
   addStatusEffect,
   getStatusEffectName,
+  hasStatusEffect,
   removeStatusEffectsByCondition,
 } from "./statusEffects";
 import type { SkillId } from "../types/common";
 import { applyHealing } from "./healing";
 import type { EffectOrigin } from "../types/effectExecution";
 import { applyBattleDamage } from "./battleDamage";
-import type { DamageResolutionState } from "../types/skillExecution";
+import type {
+  DamageResolutionState,
+  TargetingMode,
+} from "../types/skillExecution";
 
 interface EffectContext {
   state: BattleState;
@@ -7132,6 +7358,7 @@ interface EffectContext {
    * 一連の技・直接効果内で共有する死亡保留情報。
    */
   damageResolution: DamageResolutionState;
+  targetingMode: TargetingMode;
 }
 
 export function applyEffectAction(
@@ -7156,6 +7383,15 @@ export function applyEffectAction(
       }
 
       applyHeal(action.amount, targets, context);
+      return;
+
+    case "reduce_hp_rate":
+      if (!rollChance(action.chance ?? 1)) {
+        context.state.logs.unshift("しかし、HP割合減少は発生しなかった。");
+        return;
+      }
+
+      applyReduceHpRate(action, targets, context);
       return;
 
     case "change_reel":
@@ -7239,6 +7475,10 @@ export function applyEffectAction(
       }
 
       applyDrain(action, targets, context);
+      return;
+
+    case "instant_death":
+      applyInstantDeath(action, targets, context);
       return;
 
     case "do_nothing":
@@ -7404,11 +7644,25 @@ function applyGaugeChange(
   amount: number,
   context: EffectContext,
 ): void {
-  const team = getTargetTeam(context.state, context.actor, targetTeam);
+  const resolvedTargetTeam = resolveTargetTeam(
+    targetTeam,
+    context.targetingMode,
+  );
+
+  const team = getTargetTeam(
+    context.state,
+    context.actor,
+    targetTeam,
+    context.targetingMode,
+  );
 
   addSpecialGauge(team, amount);
 
-  if (targetTeam === "self_team") {
+  /**
+   * ログも技データ上の指定ではなく、
+   * 混乱反転後の実際の対象チームを基準にする。
+   */
+  if (resolvedTargetTeam === "self_team") {
     context.state.logs.unshift(
       `${context.actor.definition.name} 側の必殺技ゲージが ${amount} 変化した。`,
     );
@@ -7657,11 +7911,223 @@ function applyDrain(
   );
 }
 
+/**
+ * 割合をログ表示用のパーセント文字列へ変換する。
+ *
+ * 例:
+ * 0.5   -> "50"
+ * 0.125 -> "12.5"
+ * 1     -> "100"
+ * 1.5   -> "150"
+ *
+ * 浮動小数点誤差による
+ * 30.000000000000004のような表示を避ける。
+ */
+function formatRateAsPercent(rate: number): string {
+  const percent = Math.round(rate * 100 * 1_000_000) / 1_000_000;
+
+  return `${percent}`;
+}
+
+/**
+ * 対象のHPを割合で直接減少させる。
+ *
+ * この処理はapplyBattleDamage()を通さない。
+ * そのため、次の処理は発生しない。
+ *
+ * ・防御変化
+ * ・属性相性
+ * ・アンデッドの技カテゴリ倍率
+ * ・被ダメージ時の必殺技ゲージ増加
+ * ・ダメージチェーン
+ * ・チャージ攻撃のダメージ解除
+ * ・その他の被ダメージ時効果
+ *
+ * HPが0になった場合だけ、
+ * 既存の死亡保留処理へ登録する。
+ */
+function applyReduceHpRate(
+  action: Extract<
+    EffectAction,
+    {
+      type: "reduce_hp_rate";
+    }
+  >,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  /**
+   * NaNやInfinityは技データ不正として不発にする。
+   */
+  if (!Number.isFinite(action.rate)) {
+    context.state.logs.unshift("しかし、HP割合減少の割合が不正だった。");
+    return;
+  }
+
+  /**
+   * 負数は0として扱う。
+   * 1を超える割合はそのまま許可する。
+   */
+  const normalizedRate = Math.max(0, action.rate);
+
+  /**
+   * 未指定時は現在HP基準。
+   */
+  const basedOnCurrentHp = action.basedOnCurrentHp ?? true;
+
+  const baseLabel = basedOnCurrentHp ? "現在HP" : "最大HP";
+
+  const percentText = formatRateAsPercent(normalizedRate);
+
+  for (const target of targets) {
+    const beforeHp = target.currentHp;
+
+    /**
+     * 現在HP基準の場合は、
+     * 各効果適用時点のcurrentHpを使う。
+     *
+     * 最大HP基準の場合は、
+     * 常にmaxHpを使う。
+     */
+    const baseHp = basedOnCurrentHp ? target.currentHp : target.maxHp;
+
+    /**
+     * 減少量の小数点以下は
+     * 切り捨てる。
+     */
+    const reductionAmount = Math.floor(baseHp * normalizedRate);
+
+    /**
+     * HPは0未満にならない。
+     *
+     * reductionAmountが現在HPを上回っても、
+     * currentHpは0で停止する。
+     */
+    target.currentHp = Math.max(0, target.currentHp - reductionAmount);
+
+    context.state.logs.unshift(
+      `${target.definition.name}の体力は${baseLabel}の${percentText}％減少した。`,
+    );
+
+    /**
+     * この効果によって、
+     * 生存状態からHP0になった場合だけ
+     * 死亡保留へ登録する。
+     *
+     * applyBattleDamage()は使用しないため、
+     * ダメージ関連の副作用は発生しない。
+     */
+    if (beforeHp > 0 && target.currentHp <= 0) {
+      context.damageResolution.pendingDefeatUnitInstanceIds.add(
+        target.instanceId,
+      );
+    }
+  }
+}
+
+/**
+ * 対象へ即死効果を適用する。
+ *
+ * 即死はダメージではないため、
+ * applyBattleDamage()を使用しない。
+ *
+ * 複数対象の場合は、対象ごとに個別に
+ * 成功確率を判定する。
+ */
+function applyInstantDeath(
+  action: Extract<
+    EffectAction,
+    {
+      type: "instant_death";
+    }
+  >,
+  targets: BattleUnit[],
+  context: EffectContext,
+): void {
+  for (const target of targets) {
+    /**
+     * 対象ごとに確率判定する。
+     */
+    if (!rollChance(action.chance ?? 1)) {
+      context.state.logs.unshift(
+        `しかし、${target.definition.name}への即死効果は発生しなかった。`,
+      );
+      continue;
+    }
+
+    /**
+     * すでにHP0の対象には適用しない。
+     *
+     * 成功時ゲージを重複して獲得することを防ぐ。
+     */
+    if (target.currentHp <= 0) {
+      context.state.logs.unshift(
+        `しかし、${target.definition.name}はすでに倒れている。`,
+      );
+      continue;
+    }
+
+    /**
+     * アンデッドには即死が無効。
+     */
+    if (target.definition.species === "undead") {
+      context.state.logs.unshift(
+        `${target.definition.name}には即死が効かなかった。`,
+      );
+      continue;
+    }
+
+    /**
+     * 即死無効を持つ場合も無効。
+     *
+     * 即死無効は消費しない。
+     */
+    if (hasStatusEffect(target, "instant_death_immunity")) {
+      context.state.logs.unshift(
+        `${target.definition.name}は即死を無効化した。`,
+      );
+      continue;
+    }
+
+    /**
+     * HPを直接0にする。
+     *
+     * ダメージ処理ではないため、
+     * calculateDamage()やapplyBattleDamage()は使用しない。
+     */
+    target.currentHp = 0;
+
+    /**
+     * 技全体の処理が終わるまで
+     * 死亡確定を保留する。
+     */
+    context.damageResolution.pendingDefeatUnitInstanceIds.add(
+      target.instanceId,
+    );
+
+    /**
+     * 即死成功時の追加ゲージ。
+     *
+     * 即死を受けた対象側のチームへ1加算する。
+     *
+     * 死亡確定時のゲージ増加とは別。
+     */
+    addSpecialGauge(getOwnTeam(context.state, target), 1);
+
+    context.state.logs.unshift(`${target.definition.name}は即死した！`);
+  }
+}
+
 
 ==================================================
 FILE: src/game/executeSkill.ts
 ==================================================
-import type { BattleState, BattleUnit, UsedReelSlot } from "../types/battle";
+import type {
+  BattleState,
+  BattleTeam,
+  BattleUnit,
+  UsedReelSlot,
+} from "../types/battle";
 import { units } from "../data/units";
 import type { CounterEvent } from "../types/counter";
 import type {
@@ -8349,6 +8815,12 @@ function applySkillAction(
       },
       usedReelSlot,
       damageResolution: executionInfo.damageResolution,
+
+      /**
+       * 混乱の30%救済が有効になった場合はnormal、
+       * それ以外は技開始時に確定したモードを使用する。
+       */
+      targetingMode: getEffectiveTargetingMode(executionInfo),
     });
 
     return;
@@ -8390,6 +8862,7 @@ function applySkillAction(
     },
     usedReelSlot,
     damageResolution: executionInfo.damageResolution,
+    targetingMode: getEffectiveTargetingMode(executionInfo),
   });
 }
 
@@ -8726,7 +9199,12 @@ function applySummonAction(
     return;
   }
 
-  const targetTeam = getTargetTeam(state, actor, action.targetTeam);
+  const targetTeam = getTargetTeam(
+    state,
+    actor,
+    action.targetTeam,
+    getEffectiveTargetingMode(executionInfo),
+  );
 
   const summonSlot = findSummonSlot(targetTeam, executionInfo);
 
@@ -8831,7 +9309,7 @@ const summonPositionPriority = ["leader", "left", "right"] as const;
  * 召喚対象にしない。
  */
 function findSummonSlot(
-  targetTeam: ReturnType<typeof getTargetTeam>,
+  targetTeam: BattleTeam,
   executionInfo: SkillExecutionInfo,
 ): {
   index: number;
@@ -9162,6 +9640,7 @@ FILE: src/game/statChanges.ts
 ==================================================
 import type { BattleStatusEffect, BattleUnit } from "../types/battle";
 import type {
+  DefenseChangeStatusParams,
   StatChangeOperation,
   StatChangeStatusParams,
 } from "../types/statusEffect";
@@ -9290,14 +9769,81 @@ export function formatStatChangeValue(operation: StatChangeOperation): string {
  * 通常の状態異常には空文字を返し、
  * 攻撃変化・素早さ変化だけ変化量を返す。
  */
+/**
+ * 戦闘画面に表示する
+ * 状態異常の数値部分を返す。
+ *
+ * 攻撃変化:
+ * +10
+ * ×2
+ *
+ * 素早さ変化:
+ * -5
+ * ×0.5
+ *
+ * 防御変化:
+ * ×1.5
+ */
 export function getStatusEffectValueText(
   statusEffect: BattleStatusEffect,
 ): string {
-  if (!isStatChangeStatusEffect(statusEffect)) {
-    return "";
+  if (isStatChangeStatusEffect(statusEffect)) {
+    return formatStatChangeValue(statusEffect.params.change);
   }
 
-  return formatStatChangeValue(statusEffect.params.change);
+  if (isDefenseChangeStatusEffect(statusEffect)) {
+    return `×${statusEffect.params.multiplier}`;
+  }
+
+  return "";
+}
+
+/**
+ * BattleStatusEffectが、
+ * 有効な防御変化かを判定する。
+ */
+export function isDefenseChangeStatusEffect(
+  statusEffect: BattleStatusEffect,
+): statusEffect is BattleStatusEffect & {
+  id: "defense_change";
+  params: DefenseChangeStatusParams;
+} {
+  if (statusEffect.id !== "defense_change") {
+    return false;
+  }
+
+  if (statusEffect.params?.type !== "defense_change") {
+    return false;
+  }
+
+  return (
+    Number.isFinite(statusEffect.params.multiplier) &&
+    statusEffect.params.multiplier >= 0
+  );
+}
+
+/**
+ * ユニットが持つすべての防御変化倍率を乗算する。
+ *
+ * 例:
+ * ×1.5 と ×1.5
+ * → 1.5 × 1.5
+ * → 2.25
+ *
+ * 途中では丸めない。
+ */
+export function getDefenseDamageMultiplier(unit: BattleUnit): number {
+  let multiplier = 1;
+
+  for (const statusEffect of unit.statusEffects) {
+    if (!isDefenseChangeStatusEffect(statusEffect)) {
+      continue;
+    }
+
+    multiplier *= statusEffect.params.multiplier;
+  }
+
+  return multiplier;
 }
 
 
@@ -9317,6 +9863,7 @@ import type {
   CounterBattleStatusEffect,
   CounterStatusParams,
   DamageChainStatusParams,
+  DefenseChangeStatusParams,
   FrostbiteStatusParams,
   StatChangeStatusParams,
   StatusEffectCategory,
@@ -9470,6 +10017,10 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
     input.statusEffectId === "speed_change"
   ) {
     addStatChangeStatusEffect(input);
+    return;
+  }
+  if (input.statusEffectId === "defense_change") {
+    addDefenseChangeStatusEffect(input);
     return;
   }
 
@@ -9805,6 +10356,8 @@ function cloneStatusEffectParams(
     case "attack_change":
     case "speed_change":
       return cloneStatChangeStatusParams(params);
+    case "defense_change":
+      return cloneDefenseChangeStatusParams(params);
   }
 }
 
@@ -10594,6 +11147,16 @@ function cloneStatChangeStatusParams(
   };
 }
 
+function cloneDefenseChangeStatusParams(
+  params: DefenseChangeStatusParams,
+): DefenseChangeStatusParams {
+  return {
+    type: "defense_change",
+    multiplier: params.multiplier,
+    stackingMode: params.stackingMode ?? "same_skill",
+  };
+}
+
 function getStatChangeLogValue(params: StatChangeStatusParams): string {
   if (params.change.kind === "flat") {
     return params.change.value >= 0
@@ -10738,6 +11301,152 @@ function addStatChangeStatusEffect(input: AddStatusEffectInput): void {
     `${input.target.definition.name} の${getStatusEffectName(
       input.statusEffectId,
     )}が${beforeValue}・${beforeDuration}ターンから、${getStatChangeLogValue(
+      incomingParams,
+    )}・${existing.remainingTurns}ターンに更新された。`,
+  );
+}
+
+function isDefenseChangeStatusParams(
+  params: StatusEffectParams | undefined,
+): params is DefenseChangeStatusParams {
+  return params?.type === "defense_change";
+}
+
+function getDefenseChangeLogValue(params: DefenseChangeStatusParams): string {
+  return `×${params.multiplier}`;
+}
+
+/**
+ * 防御変化を付与する。
+ *
+ * same_skill:
+ *   同じ技IDから付与された既存の防御変化を更新する。
+ *
+ * always_stack:
+ *   同じ技IDでも必ず別の状態異常として追加する。
+ */
+function addDefenseChangeStatusEffect(input: AddStatusEffectInput): void {
+  if (input.statusEffectId !== "defense_change") {
+    return;
+  }
+
+  if (!isDefenseChangeStatusParams(input.params)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への防御変化付与に必要な倍率が設定されていません。`,
+    );
+    return;
+  }
+
+  /**
+   * NaN、Infinity、負倍率は無効。
+   *
+   * ×0は許可する。
+   * ただし通常の技ダメージには最低1の制限があるため、
+   * 最終的な技ダメージは1になる。
+   */
+  if (
+    !Number.isFinite(input.params.multiplier) ||
+    input.params.multiplier < 0
+  ) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} への防御変化の倍率が不正です。`,
+    );
+    return;
+  }
+
+  const duration = input.duration ?? getDefaultStatusDuration("defense_change");
+
+  const normalizedDuration = Math.max(0, Math.trunc(duration));
+
+  const category = resolveAppliedStatusEffectCategory(
+    "defense_change",
+    input.category,
+  );
+
+  const incomingParams = cloneDefenseChangeStatusParams(input.params);
+
+  const stackingMode = incomingParams.stackingMode ?? "same_skill";
+
+  /**
+   * always_stackでは、
+   * 既存状態を検索せず必ず追加する。
+   */
+  if (stackingMode === "always_stack") {
+    input.target.statusEffects.push({
+      id: "defense_change",
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に防御変化${getDefenseChangeLogValue(
+        incomingParams,
+      )}が付与された。`,
+    );
+
+    return;
+  }
+
+  /**
+   * same_skillでは、
+   * 同じ状態異常IDかつ同じ技IDの
+   * 最初の既存状態を更新する。
+   */
+  const existing = input.target.statusEffects.find((statusEffect) => {
+    return (
+      statusEffect.id === "defense_change" &&
+      statusEffect.sourceSkillId === input.sourceSkillId
+    );
+  });
+
+  if (!existing) {
+    input.target.statusEffects.push({
+      id: "defense_change",
+      remainingTurns: normalizedDuration,
+      sourceUnitInstanceId: input.sourceUnitInstanceId,
+      sourceSkillId: input.sourceSkillId,
+      category,
+      params: incomingParams,
+    });
+
+    input.state.logs.unshift(
+      `${input.target.definition.name} に防御変化${getDefenseChangeLogValue(
+        incomingParams,
+      )}が付与された。`,
+    );
+
+    return;
+  }
+
+  const beforeDuration = existing.remainingTurns;
+
+  const beforeValue = isDefenseChangeStatusParams(existing.params)
+    ? getDefenseChangeLogValue(existing.params)
+    : "未設定";
+
+  /**
+   * 継続ターンは長い方を採用する。
+   */
+  existing.remainingTurns = Math.max(
+    existing.remainingTurns,
+    normalizedDuration,
+  );
+
+  /**
+   * 倍率は新しく付与された値へ更新する。
+   *
+   * 配列上の位置は変更しない。
+   */
+  existing.sourceUnitInstanceId = input.sourceUnitInstanceId;
+  existing.sourceSkillId = input.sourceSkillId;
+  existing.category = category;
+  existing.params = incomingParams;
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} の防御変化が${beforeValue}・${beforeDuration}ターンから、${getDefenseChangeLogValue(
       incomingParams,
     )}・${existing.remainingTurns}ターンに更新された。`,
   );
@@ -12274,9 +12983,11 @@ export type EffectAction =
   | ReplaceUsedSkillAction
   | ApplyStatusEffectAction
   | RemoveStatusEffectAction
+  | ReduceHpRateAction
   | RandomAction
   | ConditionalAction
   | SummonAction
+  | InstantDeathAction
   | DoNothingAction;
 
 export interface DamageAction {
@@ -12594,6 +13305,71 @@ export interface ConditionalAction {
   chance?: number;
 }
 
+/**
+ * 対象のHPを、現在HPまたは最大HPの割合で直接減少させる。
+ *
+ * この効果はダメージとして扱わない。
+ */
+export interface ReduceHpRateAction {
+  type: "reduce_hp_rate";
+
+  /**
+   * 減少させる割合。
+   *
+   * 例:
+   * 0.1 = 10%
+   * 0.5 = 50%
+   * 1   = 100%
+   * 1.5 = 150%
+   *
+   * 1を超える値も指定可能。
+   * 負数は実行時に0として扱う。
+   */
+  rate: number;
+
+  /**
+   * trueまたは未指定:
+   *   効果適用時点の現在HPを基準にする。
+   *
+   * false:
+   *   最大HPを基準にする。
+   *
+   * 未指定時はtrue。
+   */
+  basedOnCurrentHp?: boolean;
+
+  /**
+   * 効果の発生確率。
+   *
+   * 1 = 100%
+   * 0.5 = 50%
+   *
+   * 未指定時は100%。
+   */
+  chance?: number;
+}
+
+/**
+ * 対象のHPを直接0にする即死効果。
+ *
+ * この効果はダメージとして扱わない。
+ *
+ * アンデッド、または即死無効を持つ対象には無効。
+ */
+export interface InstantDeathAction {
+  type: "instant_death";
+
+  /**
+   * 対象ごとの成功確率。
+   *
+   * 1 = 100%
+   * 0.5 = 50%
+   *
+   * 未指定時は100%。
+   */
+  chance?: number;
+}
+
 
 ==================================================
 FILE: src/types/skillExecution.ts
@@ -12713,7 +13489,9 @@ export type StatusEffectId =
   | "curse"
   | "attack_change"
   | "speed_change"
-  | "trance";
+  | "defense_change"
+  | "trance"
+  | "instant_death_immunity";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -12741,7 +13519,8 @@ export type StatusEffectParams =
   | BlessingStatusParams
   | AppliedBlessingStatusParams
   | AttackChangeStatusParams
-  | SpeedChangeStatusParams;
+  | SpeedChangeStatusParams
+  | DefenseChangeStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -12970,6 +13749,44 @@ export type StatChangeBattleStatusEffect =
   | SpeedChangeBattleStatusEffect;
 
 export type StatusEffectCategory = "harmful" | "benefit" | "neutral" | "except";
+
+/**
+ * 防御変化のパラメータ。
+ *
+ * 対象が技由来のダメージを受けるとき、
+ * 計算ダメージへmultiplierを乗算する。
+ *
+ * multiplierは0以上。
+ */
+export interface DefenseChangeStatusParams {
+  type: "defense_change";
+
+  /**
+   * 被ダメージ倍率。
+   *
+   * 例:
+   * 0.5 = 技ダメージを半減
+   * 1.5 = 技ダメージを1.5倍
+   * 2   = 技ダメージを2倍
+   */
+  multiplier: number;
+
+  /**
+   * 未指定時はsame_skill。
+   *
+   * same_skill:
+   *   同じ技IDから付与された防御変化だけ更新する。
+   *
+   * always_stack:
+   *   同じ技IDからの付与でも、常に別状態として追加する。
+   */
+  stackingMode?: StatChangeStackingMode;
+}
+
+export type DefenseChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "defense_change";
+  params: DefenseChangeStatusParams;
+};
 
 
 ==================================================
