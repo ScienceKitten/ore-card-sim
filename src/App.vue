@@ -29,6 +29,9 @@ import {
   getEffectiveSpeed,
   getStatusEffectValueText,
 } from "./game/statChanges";
+import {
+  getEffectiveReel,
+} from "./game/commandChange";
 
 type Screen = 'unit_select' | 'battle'
 
@@ -181,7 +184,10 @@ const reelDisplaySkills =
       return [];
     }
 
-    const reel = reelDisplayUnit.value.reels[reelDisplayReelIndex.value];
+    const reel = getEffectiveReel(
+      reelDisplayUnit.value,
+      reelDisplayReelIndex.value,
+    );
 
     if (!reel) {
       return [];

@@ -111,6 +111,7 @@ export interface HealAction {
   type: "heal";
   amount: number;
   chance?: number;
+  increaseMaxHp?: boolean;
 }
 
 export interface ChangeReelAction {

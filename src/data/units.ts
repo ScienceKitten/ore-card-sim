@@ -772,6 +772,37 @@ export const units: UnitDefinition[] = [
     specialSkillId: "thunder_power4",
   },
   {
+    id: "artist_vecci",
+    name: "アーティスト・ヴェッチ",
+    maxHp: 374,
+    attack: 68,
+    speed: 78,
+    species: "knight",
+    attribute: "water",
+    gender: "none",
+    reels: [
+      ["miss", "pop_noise", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "pop_noise", "pop_noise", "reel_up", "reel_up", "reel_up"],
+      [
+        "attack",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+      ],
+      [
+        "attack_power1",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+      ],
+    ],
+    specialSkillId: "vecci_world_tour",
+  },
+  {
     id: "mead_evil_emperor",
     name: "邪帝ミード",
     maxHp: 393,
@@ -997,6 +1028,7 @@ export const units: UnitDefinition[] = [
     ],
     specialSkillId: "mystical_white_cocoon",
   },
+
   {
     id: "auslese_demon_king",
     name: "魔皇アウスレーゼ",

@@ -145,4 +145,11 @@ export const statusEffectDefinitions: Record<
     category: "except",
     defaultDuration: 2,
   },
+
+  command_change: {
+    id: "command_change",
+    name: "コマンド変化",
+    category: "except",
+    defaultDuration: 3,
+  },
 };

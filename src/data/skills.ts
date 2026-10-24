@@ -1802,6 +1802,12 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 1.89,
           },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "curse",
+            duration: 3,
+            chance: 0.3,
+          },
         ],
       },
     ],
@@ -1888,6 +1894,189 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "instant_death_immunity",
+          },
+        ],
+      },
+    ],
+  },
+  pop_noise: {
+    id: "pop_noise",
+    name: "ポップ・ノイズ",
+    attributes: ["ice"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.5,
+          },
+        ],
+      },
+    ],
+  },
+  vecci_world_tour: {
+    id: "vecci_world_tour",
+    name: "ヴェッチ・ワールドツアー",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_allies", includeSelf: true },
+        actions: [
+          {
+            type: "heal",
+            increaseMaxHp: true,
+            amount: 120,
+          },
+        ],
+      },
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "command_change",
+            duration: 1,
+            params: {
+              type: "command_change",
+              skillId: "miss",
+              count: 3,
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "vecci_world_tour_2",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  vecci_world_tour_2: {
+    id: "vecci_world_tour_2",
+    name: "ヴェッチ・ワールドツアー・2番",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            duration: 2,
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            duration: 2,
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "all_allies", includeSelf: false },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            duration: 1,
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            duration: 1,
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+        ],
+      },
+
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "command_change",
+            duration: 1,
+            params: {
+              type: "command_change",
+              skillId: "miss",
+              count: 3,
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "vecci_world_tour_3",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  vecci_world_tour_3: {
+    id: "vecci_world_tour_3",
+    name: "ヴェッチ・ワールドツアー・3番",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.1,
           },
         ],
       },

@@ -2,8 +2,8 @@
 PROJECT SOURCE EXPORT
 ==================================================
 Project root: C:\Development\webweb\webgame-ts
-Exported at: 2026-10-22 22:09:23
-Source file count: 47
+Exported at: 2026-10-24 22:41:46
+Source file count: 48
 
 ==================================================
 PROJECT FILE STRUCTURE
@@ -37,6 +37,7 @@ PROJECT FILE STRUCTURE
 [FILE] src/game/actionLifecycle.ts
 [FILE] src/game/battleDamage.ts
 [FILE] src/game/battleQueries.ts
+[FILE] src/game/commandChange.ts
 [FILE] src/game/counter.ts
 [FILE] src/game/createBattleState.ts
 [FILE] src/game/damage.ts
@@ -167,6 +168,9 @@ import {
   getEffectiveSpeed,
   getStatusEffectValueText,
 } from "./game/statChanges";
+import {
+  getEffectiveReel,
+} from "./game/commandChange";
 
 type Screen = 'unit_select' | 'battle'
 
@@ -2497,6 +2501,26 @@ export const skills: Record<string, SkillDefinition> = {
     ],
   },
 
+  cover: {
+    id: "cover",
+    name: "かばう",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: {
+          type: "self",
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "cover",
+          },
+        ],
+      },
+    ],
+  },
+
   ex_plus_1: {
     id: "ex_plus_1",
     name: "EXゲージ+1",
@@ -2882,6 +2906,25 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 1.8,
+          },
+        ],
+      },
+    ],
+  },
+
+  flash_flood_gun: {
+    id: "flash_flood_gun",
+    name: "鉄砲水鉄砲",
+    attributes: ["water"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 3.5,
+            variance: 0.42,
           },
         ],
       },
@@ -3666,6 +3709,12 @@ export const skills: Record<string, SkillDefinition> = {
             type: "damage",
             multiplier: 1.89,
           },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "curse",
+            duration: 3,
+            chance: 0.3,
+          },
         ],
       },
     ],
@@ -3752,6 +3801,127 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "apply_status_effect",
             statusEffectId: "instant_death_immunity",
+          },
+        ],
+      },
+    ],
+  },
+  pop_noise: {
+    id: "pop_noise",
+    name: "ポップ・ノイズ",
+    attributes: ["ice"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.5,
+          },
+        ],
+      },
+    ],
+  },
+  vecci_world_tour: {
+    id: "vecci_world_tour",
+    name: "ヴェッチ・ワールドツアー",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_allies", includeSelf: true },
+        actions: [
+          {
+            type: "heal",
+            increaseMaxHp: true,
+            amount: 120,
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "vecci_world_tour_2",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  vecci_world_tour_2: {
+    id: "vecci_world_tour_2",
+    name: "ヴェッチ・ワールドツアー・2番",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_allies", includeSelf: true },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            duration: 2,
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            duration: 2,
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "charged_attack",
+            duration: 2,
+            chance: 1,
+            params: {
+              type: "charged_attack",
+              skillId: "vecci_world_tour_3",
+              canMoveWhileCharge: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+  vecci_world_tour_3: {
+    id: "vecci_world_tour_3",
+    name: "ヴェッチ・ワールドツアー・3番",
+    attributes: ["ice"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 2.1,
           },
         ],
       },
@@ -4479,6 +4649,19 @@ export const statusEffectDefinitions: Record<
     category: "benefit",
     defaultDuration: 99,
   },
+  cover: {
+    id: "cover",
+    name: "かばう",
+    category: "except",
+    defaultDuration: 2,
+  },
+
+  command_change: {
+    id: "command_change",
+    name: "コマンド変化",
+    category: "except",
+    defaultDuration: 3,
+  },
 };
 
 
@@ -4807,6 +4990,19 @@ export const units: UnitDefinition[] = [
       ],
     ],
     specialSkillId: "trident_of_abyssal",
+  },
+  {
+    id: "puti_club",
+    name: "プチクラブ",
+    maxHp: 42,
+    attack: 42,
+    speed: 42,
+    species: "aquatic",
+    attribute: "water",
+    gender: "none",
+    reels: [["cover", "cover", "cover", "cover", "cover", "cover"]],
+    specialSkillId: "flash_flood_gun",
+    defaultItemId: "speed_shoes",
   },
   {
     id: "dracomachina",
@@ -5304,6 +5500,37 @@ export const units: UnitDefinition[] = [
     specialSkillId: "thunder_power4",
   },
   {
+    id: "artist_vecci",
+    name: "アーティスト・ヴェッチ",
+    maxHp: 374,
+    attack: 68,
+    speed: 78,
+    species: "knight",
+    attribute: "water",
+    gender: "none",
+    reels: [
+      ["miss", "pop_noise", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "pop_noise", "pop_noise", "reel_up", "reel_up", "reel_up"],
+      [
+        "attack",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+      ],
+      [
+        "attack_power1",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+        "pop_noise",
+      ],
+    ],
+    specialSkillId: "vecci_world_tour",
+  },
+  {
     id: "mead_evil_emperor",
     name: "邪帝ミード",
     maxHp: 393,
@@ -5529,6 +5756,7 @@ export const units: UnitDefinition[] = [
     ],
     specialSkillId: "mystical_white_cocoon",
   },
+
   {
     id: "auslese_demon_king",
     name: "魔皇アウスレーゼ",
@@ -6452,6 +6680,186 @@ export function resolveTargetTeam(
   }
 
   return targetTeam === "self_team" ? "opponent_team" : "self_team";
+}
+
+
+==================================================
+FILE: src/game/commandChange.ts
+==================================================
+import type { BattleStatusEffect, BattleUnit } from "../types/battle";
+import type { SkillId } from "../types/common";
+import type {
+  CommandChangeBattleStatusEffect,
+  CommandChangeSlot,
+  CommandChangeStatusParams,
+} from "../types/statusEffect";
+
+/**
+ * 指定された状態異常が、
+ * 有効なコマンド変化かを判定する。
+ */
+export function isCommandChangeStatusEffect(
+  statusEffect: BattleStatusEffect,
+): statusEffect is CommandChangeBattleStatusEffect {
+  return (
+    statusEffect.id === "command_change" &&
+    statusEffect.params?.type === "command_change" &&
+    Array.isArray(statusEffect.params.changedSlots)
+  );
+}
+
+/**
+ * ユニットが持つコマンド変化を取得する。
+ *
+ * コマンド変化は同時に1件だけ保持する仕様だが、
+ * 不正データで複数存在する場合は
+ * 配列上で最後のものを採用する。
+ */
+export function getCommandChangeStatusEffect(
+  unit: BattleUnit,
+): CommandChangeBattleStatusEffect | null {
+  for (let index = unit.statusEffects.length - 1; index >= 0; index--) {
+    const statusEffect = unit.statusEffects[index];
+
+    if (isCommandChangeStatusEffect(statusEffect)) {
+      return statusEffect;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 指定リールの実効内容を返す。
+ *
+ * BattleUnit.reels自体は変更せず、
+ * 基礎リールを複製してから
+ * コマンド変化を一時的に上書きする。
+ */
+export function getEffectiveReel(
+  unit: BattleUnit,
+  reelIndex: number,
+): SkillId[] {
+  const baseReel = unit.reels[reelIndex];
+
+  if (!baseReel) {
+    return [];
+  }
+
+  const effectiveReel: SkillId[] = [...baseReel];
+
+  const commandChange = getCommandChangeStatusEffect(unit);
+
+  if (!commandChange) {
+    return effectiveReel;
+  }
+
+  for (const changedSlot of commandChange.params.changedSlots) {
+    if (changedSlot.reelIndex !== reelIndex) {
+      continue;
+    }
+
+    if (
+      changedSlot.slotIndex < 0 ||
+      changedSlot.slotIndex >= effectiveReel.length
+    ) {
+      continue;
+    }
+
+    effectiveReel[changedSlot.slotIndex] = commandChange.params.skillId;
+  }
+
+  return effectiveReel;
+}
+
+/**
+ * すべての実効リールを返す。
+ *
+ * UIなどで全リールを表示する場合に使用する。
+ */
+export function getEffectiveReels(unit: BattleUnit): SkillId[][] {
+  return unit.reels.map((_, reelIndex) => {
+    return getEffectiveReel(unit, reelIndex);
+  });
+}
+
+/**
+ * コマンド変化に使用するランダムな枠を生成する。
+ *
+ * 各リールについて、
+ * 基礎コマンドが変更先skillIdと異なる枠から
+ * 最大count件を重複なしで選ぶ。
+ */
+export function createCommandChangeSlots(
+  unit: BattleUnit,
+  skillId: SkillId,
+  count: number,
+): CommandChangeSlot[] {
+  const normalizedCount = Math.max(0, Math.trunc(count));
+
+  if (normalizedCount === 0) {
+    return [];
+  }
+
+  const changedSlots: CommandChangeSlot[] = [];
+
+  for (let reelIndex = 0; reelIndex < unit.reels.length; reelIndex++) {
+    const reel = unit.reels[reelIndex];
+
+    const candidateSlotIndexes: number[] = [];
+
+    for (let slotIndex = 0; slotIndex < reel.length; slotIndex++) {
+      /**
+       * コマンド変化は基礎リールを基準に抽選する。
+       *
+       * 変更先とすでに同じ枠は候補にしない。
+       */
+      if (reel[slotIndex] !== skillId) {
+        candidateSlotIndexes.push(slotIndex);
+      }
+    }
+
+    shuffleInPlace(candidateSlotIndexes);
+
+    const selectedIndexes = candidateSlotIndexes.slice(0, normalizedCount);
+
+    for (const slotIndex of selectedIndexes) {
+      changedSlots.push({
+        reelIndex,
+        slotIndex,
+      });
+    }
+  }
+
+  return changedSlots;
+}
+
+/**
+ * Fisher-Yates方式で配列をシャッフルする。
+ */
+function shuffleInPlace<T>(values: T[]): void {
+  for (let index = values.length - 1; index > 0; index--) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+
+    [values[index], values[randomIndex]] = [values[randomIndex], values[index]];
+  }
+}
+
+/**
+ * 状態異常へ保存するパラメータを複製する。
+ */
+export function cloneCommandChangeStatusParams(
+  params: CommandChangeStatusParams,
+): CommandChangeStatusParams {
+  return {
+    type: "command_change",
+    skillId: params.skillId,
+    count: params.count,
+    changedSlots: params.changedSlots?.map((slot) => ({
+      reelIndex: slot.reelIndex,
+      slotIndex: slot.slotIndex,
+    })),
+  };
 }
 
 
@@ -7382,7 +7790,7 @@ export function applyEffectAction(
         return;
       }
 
-      applyHeal(action.amount, targets, context);
+      applyHeal(action, targets, context);
       return;
 
     case "reduce_hp_rate":
@@ -7567,16 +7975,72 @@ function applyDamage(
 }
 
 function applyHeal(
-  amount: number,
+  action: Extract<
+    EffectAction,
+    {
+      type: "heal";
+    }
+  >,
   targets: BattleUnit[],
   context: EffectContext,
 ): void {
+  /**
+   * 最大HP増加量。
+   *
+   * increaseMaxHpがtrueの場合だけ有効。
+   * 負数によって最大HPが減少しないよう、
+   * 最低0に制限する。
+   *
+   * HPは整数として扱うため、
+   * 小数部分は0方向へ切り捨てる。
+   */
+  const maxHpIncrease =
+    action.increaseMaxHp === true ? Math.max(0, Math.trunc(action.amount)) : 0;
+
   for (const target of targets) {
+    /**
+     * 戦闘不能ユニットには、
+     * 通常回復も最大HP増加も適用しない。
+     */
+    if (target.currentHp <= 0) {
+      continue;
+    }
+
+    /**
+     * 回復無効を持つ場合は、
+     * 最大HP増加と通常回復の両方を無効化する。
+     *
+     * 最大HPを変更する前に判定することが重要。
+     */
+    if (hasStatusEffect(target, "heal_block")) {
+      context.state.logs.unshift(
+        `${target.definition.name} の回復は無効化された。`,
+      );
+
+      continue;
+    }
+
+    /**
+     * 回復が有効な場合に限り、
+     * 通常回復より前に最大HPを増加させる。
+     */
+    if (maxHpIncrease > 0) {
+      target.maxHp += maxHpIncrease;
+
+      context.state.logs.unshift(
+        `${target.definition.name} の最大HPが ${maxHpIncrease} 増加した。`,
+      );
+    }
+
+    /**
+     * 最大HPを増加させた後、
+     * 既存の共通回復処理を実行する。
+     */
     const result = applyHealing({
       state: context.state,
       healer: context.actor,
       target,
-      amount,
+      amount: action.amount,
       sourceType: "skill",
       skill: context.skill,
     });
@@ -7585,6 +8049,13 @@ function applyHeal(
       continue;
     }
 
+    /**
+     * 上で回復無効を確認しているが、
+     * applyHealing()側の共通判定も残す。
+     *
+     * 将来、回復無効以外の理由でblockedになる場合にも
+     * 対応できる。
+     */
     if (result.blocked) {
       context.state.logs.unshift(
         `${target.definition.name} の回復は無効化された。`,
@@ -8168,6 +8639,7 @@ import {
   getSkillSealMessage,
   hasStatusEffect,
   isConfused,
+  isCovering,
   isSkillSealedByStatus,
   isTranced,
   resolveFrostbiteOnReelSelection,
@@ -8184,6 +8656,7 @@ import { createSkillExecutionInfo } from "./skillExecution";
 import { randomChoice, rollChance } from "../utils/random";
 import { finalizePendingDefeats } from "./battleDamage";
 import { createSummonedBattleUnit } from "./createBattleState";
+import { getEffectiveReel } from "./commandChange";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -8253,7 +8726,7 @@ export function executeRandomReelSkill(
     );
   }
 
-  const reel = actor.reels[actor.currentReelIndex];
+  const reel = getEffectiveReel(actor, actor.currentReelIndex);
 
   if (!reel || reel.length === 0) {
     state.logs.unshift(`${actor.definition.name} のリールが空です。`);
@@ -8732,17 +9205,37 @@ function applySkillEffect(
   counterEvents: CounterEvent[],
   executionInfo: SkillExecutionInfo,
 ): void {
+  const isTargetless = effect.target.type === "none";
+
+  /**
+   * 対象なし効果には、
+   * かばうを適用しない。
+   *
+   * 召喚やTargetTeamによる
+   * チーム対象効果も変更しない。
+   */
+  const resolvedTargets = isTargetless
+    ? targets
+    : resolveCoverTargets(state, actor, targets, executionInfo);
+
+  /**
+   * 同じSkillEffect内のすべてのactionへ、
+   * 同一の変換後対象を渡す。
+   *
+   * これにより、「対象選択」の置き換えとして
+   * 一貫した挙動になる。
+   */
   for (const action of effect.actions) {
     applySkillAction(
       state,
       actor,
       skill,
       action,
-      targets,
+      resolvedTargets,
       usedReelSlot,
       counterEvents,
       executionInfo,
-      effect.target.type === "none",
+      isTargetless,
     );
   }
 }
@@ -9339,6 +9832,92 @@ function findSummonSlot(
   return null;
 }
 
+/**
+ * 指定されたユニットと同じチームにいる、
+ * かばう状態のユニットを取得する。
+ *
+ * 現在の技処理開始時に生存していたユニットは、
+ * 技の途中でHP0になっていても候補に残す。
+ *
+ * これにより、1回目の効果でかばうユニットが
+ * HP0になっても、その技の残りの対象をかばえる。
+ */
+function getCoveringUnits(
+  state: BattleState,
+  protectedTarget: BattleUnit,
+  executionInfo: SkillExecutionInfo,
+): BattleUnit[] {
+  const team =
+    protectedTarget.side === "ally" ? state.allyTeam : state.enemyTeam;
+
+  return team.units.filter((unit) => {
+    return (
+      executionInfo.damageResolution.initiallyAliveUnitInstanceIds.has(
+        unit.instanceId,
+      ) && isCovering(unit)
+    );
+  });
+}
+
+/**
+ * 相手チームの技による対象を、
+ * かばう状態のユニットへ置き換える。
+ *
+ * 配列の要素数と重複は維持する。
+ */
+function resolveCoverTargets(
+  state: BattleState,
+  actor: BattleUnit,
+  targets: BattleUnit[],
+  executionInfo: SkillExecutionInfo,
+): BattleUnit[] {
+  return targets.map((originalTarget) => {
+    /**
+     * 味方チームの技はかばわない。
+     *
+     * actorと対象が同じチームなら、
+     * 元の対象をそのまま返す。
+     */
+    if (originalTarget.side === actor.side) {
+      return originalTarget;
+    }
+
+    /**
+     * かばう状態のユニット自身への効果は、
+     * 別のユニットがかばわない。
+     */
+    if (isCovering(originalTarget)) {
+      return originalTarget;
+    }
+
+    const coveringUnits = getCoveringUnits(
+      state,
+      originalTarget,
+      executionInfo,
+    );
+
+    /**
+     * かばうユニットがいなければ、
+     * 元の対象をそのまま使用する。
+     */
+    if (coveringUnits.length === 0) {
+      return originalTarget;
+    }
+
+    /**
+     * 複数いる場合は、
+     * 対象1件ごとにランダムで選ぶ。
+     */
+    const coveringUnit = randomChoice(coveringUnits);
+
+    state.logs.unshift(
+      `${coveringUnit.definition.name} は${originalTarget.definition.name}をかばった！`,
+    );
+
+    return coveringUnit;
+  });
+}
+
 
 ==================================================
 FILE: src/game/healing.ts
@@ -9860,6 +10439,7 @@ import type {
   BlessingBattleStatusEffect,
   BlessingStatusParams,
   ChargedAttackStatusParams,
+  CommandChangeStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
   DamageChainStatusParams,
@@ -9881,6 +10461,11 @@ import {
 } from "./battleDamage";
 import { applyHealing } from "./healing";
 import { getEffectiveAttack } from "./statChanges";
+import {
+  cloneCommandChangeStatusParams,
+  createCommandChangeSlots,
+} from "./commandChange";
+import { skills } from "../data/skills";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -10009,6 +10594,10 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
   }
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
+    return;
+  }
+  if (input.statusEffectId === "command_change") {
+    addCommandChangeStatusEffect(input);
     return;
   }
 
@@ -10358,6 +10947,8 @@ function cloneStatusEffectParams(
       return cloneStatChangeStatusParams(params);
     case "defense_change":
       return cloneDefenseChangeStatusParams(params);
+    case "command_change":
+      return cloneCommandChangeStatusParams(params);
   }
 }
 
@@ -10537,6 +11128,21 @@ function resolveIncompatibleStatusEffects(
   const target = input.target;
 
   /**
+   * 混乱または麻痺中のユニットには、
+   * かばうを付与できない。
+   */
+  if (
+    input.statusEffectId === "cover" &&
+    (hasStatusEffect(target, "confusion") ||
+      hasStatusEffect(target, "paralysis"))
+  ) {
+    input.state.logs.unshift(
+      `${target.definition.name} は混乱または麻痺しているため、かばう状態になれなかった。`,
+    );
+
+    return false;
+  }
+  /**
    * トランス中に混乱を付与しようとした場合、
    * 混乱は付与せず、トランスを維持する。
    *
@@ -10577,6 +11183,18 @@ function resolveIncompatibleStatusEffects(
    * 既存の混乱・チャージ攻撃の排他処理
    */
   if (input.statusEffectId === "confusion") {
+    const hadCover = hasStatusEffect(target, "cover");
+
+    if (hadCover) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "cover";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} のかばうは混乱により解除された。`,
+      );
+    }
+
     const hasChargedAttack = target.statusEffects.some((statusEffect) => {
       return statusEffect.id === "charged_attack";
     });
@@ -10603,6 +11221,20 @@ function resolveIncompatibleStatusEffects(
     );
 
     return false;
+  }
+
+  if (input.statusEffectId === "paralysis") {
+    const hadCover = hasStatusEffect(target, "cover");
+
+    if (hadCover) {
+      target.statusEffects = target.statusEffects.filter((statusEffect) => {
+        return statusEffect.id !== "cover";
+      });
+
+      input.state.logs.unshift(
+        `${target.definition.name} のかばうは麻痺により解除された。`,
+      );
+    }
   }
 
   /*
@@ -11449,6 +12081,117 @@ function addDefenseChangeStatusEffect(input: AddStatusEffectInput): void {
     `${input.target.definition.name} の防御変化が${beforeValue}・${beforeDuration}ターンから、${getDefenseChangeLogValue(
       incomingParams,
     )}・${existing.remainingTurns}ターンに更新された。`,
+  );
+}
+
+/**
+ * ユニットが「かばう」状態かを返す。
+ */
+export function isCovering(unit: BattleUnit): boolean {
+  return hasStatusEffect(unit, "cover");
+}
+
+function isCommandChangeStatusParams(
+  params: StatusEffectParams | undefined,
+): params is CommandChangeStatusParams {
+  return params?.type === "command_change";
+}
+
+function addCommandChangeStatusEffect(input: AddStatusEffectInput): void {
+  if (input.statusEffectId !== "command_change") {
+    return;
+  }
+
+  if (!isCommandChangeStatusParams(input.params)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} へのコマンド変化に必要な技IDと個数が設定されていません。`,
+    );
+    return;
+  }
+
+  /**
+   * 指定技が技マスターデータに
+   * 存在することを確認する。
+   */
+  if (!skills[input.params.skillId]) {
+    input.state.logs.unshift(
+      `コマンド変化に指定された技ID「${input.params.skillId}」が見つかりません。`,
+    );
+    return;
+  }
+
+  const normalizedCount = Math.max(0, Math.trunc(input.params.count));
+
+  if (normalizedCount === 0) {
+    input.state.logs.unshift(
+      "しかし、変更できるコマンド数が指定されていなかった。",
+    );
+    return;
+  }
+
+  /**
+   * 現在の基礎リールから、
+   * 一時上書きする枠を選ぶ。
+   *
+   * 既存のコマンド変化は参照しない。
+   */
+  const changedSlots = createCommandChangeSlots(
+    input.target,
+    input.params.skillId,
+    normalizedCount,
+  );
+
+  /**
+   * すべての基礎リールが
+   * すでに指定技だけで構成されている場合など。
+   */
+  if (changedSlots.length === 0) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} には変更できるコマンドがなかった。`,
+    );
+    return;
+  }
+
+  /**
+   * コマンド変化は同時に1件だけ保持する。
+   *
+   * 既存状態は単に削除する。
+   * 基礎リールは変更されていないため、
+   * 復元処理は不要。
+   */
+  input.target.statusEffects = input.target.statusEffects.filter(
+    (statusEffect) => {
+      return statusEffect.id !== "command_change";
+    },
+  );
+
+  const duration = input.duration ?? getDefaultStatusDuration("command_change");
+
+  const normalizedDuration = Math.max(0, Math.trunc(duration));
+
+  const category = resolveAppliedStatusEffectCategory(
+    "command_change",
+    input.category,
+  );
+
+  const params: CommandChangeStatusParams = {
+    type: "command_change",
+    skillId: input.params.skillId,
+    count: normalizedCount,
+    changedSlots,
+  };
+
+  input.target.statusEffects.push({
+    id: "command_change",
+    remainingTurns: normalizedDuration,
+    sourceUnitInstanceId: input.sourceUnitInstanceId,
+    sourceSkillId: input.sourceSkillId,
+    category,
+    params,
+  });
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} のコマンドが変化した。`,
   );
 }
 
@@ -13017,6 +13760,7 @@ export interface HealAction {
   type: "heal";
   amount: number;
   chance?: number;
+  increaseMaxHp?: boolean;
 }
 
 export interface ChangeReelAction {
@@ -13491,7 +14235,9 @@ export type StatusEffectId =
   | "speed_change"
   | "defense_change"
   | "trance"
-  | "instant_death_immunity";
+  | "instant_death_immunity"
+  | "cover"
+  | "command_change";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -13520,7 +14266,8 @@ export type StatusEffectParams =
   | AppliedBlessingStatusParams
   | AttackChangeStatusParams
   | SpeedChangeStatusParams
-  | DefenseChangeStatusParams;
+  | DefenseChangeStatusParams
+  | CommandChangeStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -13786,6 +14533,56 @@ export interface DefenseChangeStatusParams {
 export type DefenseChangeBattleStatusEffect = BattleStatusEffect & {
   id: "defense_change";
   params: DefenseChangeStatusParams;
+};
+
+/**
+ * コマンド変化によって一時上書きするリール枠。
+ *
+ * 元の技IDは保存しない。
+ * BattleUnit.reelsが常に基礎リールを保持するため。
+ */
+export interface CommandChangeSlot {
+  /**
+   * 0始まりのリール番号。
+   */
+  reelIndex: number;
+
+  /**
+   * 0始まりの枠番号。
+   */
+  slotIndex: number;
+}
+
+export interface CommandChangeStatusParams {
+  type: "command_change";
+
+  /**
+   * 一時的に上書きする技ID。
+   */
+  skillId: SkillId;
+
+  /**
+   * 各リールで変更する最大枠数。
+   *
+   * 実行時に整数へ切り捨て、
+   * 最低0として扱う。
+   */
+  count: number;
+
+  /**
+   * 実際に上書きする枠。
+   *
+   * 技データでは指定不要。
+   * 状態異常付与時に生成する。
+   */
+  changedSlots?: CommandChangeSlot[];
+}
+
+export type CommandChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "command_change";
+  params: CommandChangeStatusParams & {
+    changedSlots: CommandChangeSlot[];
+  };
 };
 
 

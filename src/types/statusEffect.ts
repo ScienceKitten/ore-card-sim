@@ -24,7 +24,8 @@ export type StatusEffectId =
   | "defense_change"
   | "trance"
   | "instant_death_immunity"
-  | "cover";
+  | "cover"
+  | "command_change";
 
 export interface StatusEffectDefinition {
   id: StatusEffectId;
@@ -53,7 +54,8 @@ export type StatusEffectParams =
   | AppliedBlessingStatusParams
   | AttackChangeStatusParams
   | SpeedChangeStatusParams
-  | DefenseChangeStatusParams;
+  | DefenseChangeStatusParams
+  | CommandChangeStatusParams;
 
 export interface CounterStatusParams {
   type: "counter";
@@ -319,4 +321,54 @@ export interface DefenseChangeStatusParams {
 export type DefenseChangeBattleStatusEffect = BattleStatusEffect & {
   id: "defense_change";
   params: DefenseChangeStatusParams;
+};
+
+/**
+ * コマンド変化によって一時上書きするリール枠。
+ *
+ * 元の技IDは保存しない。
+ * BattleUnit.reelsが常に基礎リールを保持するため。
+ */
+export interface CommandChangeSlot {
+  /**
+   * 0始まりのリール番号。
+   */
+  reelIndex: number;
+
+  /**
+   * 0始まりの枠番号。
+   */
+  slotIndex: number;
+}
+
+export interface CommandChangeStatusParams {
+  type: "command_change";
+
+  /**
+   * 一時的に上書きする技ID。
+   */
+  skillId: SkillId;
+
+  /**
+   * 各リールで変更する最大枠数。
+   *
+   * 実行時に整数へ切り捨て、
+   * 最低0として扱う。
+   */
+  count: number;
+
+  /**
+   * 実際に上書きする枠。
+   *
+   * 技データでは指定不要。
+   * 状態異常付与時に生成する。
+   */
+  changedSlots?: CommandChangeSlot[];
+}
+
+export type CommandChangeBattleStatusEffect = BattleStatusEffect & {
+  id: "command_change";
+  params: CommandChangeStatusParams & {
+    changedSlots: CommandChangeSlot[];
+  };
 };

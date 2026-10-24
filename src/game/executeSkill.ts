@@ -61,6 +61,7 @@ import { createSkillExecutionInfo } from "./skillExecution";
 import { randomChoice, rollChance } from "../utils/random";
 import { finalizePendingDefeats } from "./battleDamage";
 import { createSummonedBattleUnit } from "./createBattleState";
+import { getEffectiveReel } from "./commandChange";
 
 export function executeRandomReelSkill(
   state: BattleState,
@@ -130,7 +131,7 @@ export function executeRandomReelSkill(
     );
   }
 
-  const reel = actor.reels[actor.currentReelIndex];
+  const reel = getEffectiveReel(actor, actor.currentReelIndex);
 
   if (!reel || reel.length === 0) {
     state.logs.unshift(`${actor.definition.name} のリールが空です。`);

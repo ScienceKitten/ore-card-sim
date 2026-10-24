@@ -8,6 +8,7 @@ import type {
   BlessingBattleStatusEffect,
   BlessingStatusParams,
   ChargedAttackStatusParams,
+  CommandChangeStatusParams,
   CounterBattleStatusEffect,
   CounterStatusParams,
   DamageChainStatusParams,
@@ -29,6 +30,11 @@ import {
 } from "./battleDamage";
 import { applyHealing } from "./healing";
 import { getEffectiveAttack } from "./statChanges";
+import {
+  cloneCommandChangeStatusParams,
+  createCommandChangeSlots,
+} from "./commandChange";
+import { skills } from "../data/skills";
 
 export function getStatusEffectName(id: StatusEffectId): string {
   return statusEffectDefinitions[id].name;
@@ -157,6 +163,10 @@ export function addStatusEffect(input: AddStatusEffectInput): void {
   }
   if (input.statusEffectId === "frostbite") {
     addFrostbiteStatusEffect(input);
+    return;
+  }
+  if (input.statusEffectId === "command_change") {
+    addCommandChangeStatusEffect(input);
     return;
   }
 
@@ -506,6 +516,8 @@ function cloneStatusEffectParams(
       return cloneStatChangeStatusParams(params);
     case "defense_change":
       return cloneDefenseChangeStatusParams(params);
+    case "command_change":
+      return cloneCommandChangeStatusParams(params);
   }
 }
 
@@ -1646,4 +1658,108 @@ function addDefenseChangeStatusEffect(input: AddStatusEffectInput): void {
  */
 export function isCovering(unit: BattleUnit): boolean {
   return hasStatusEffect(unit, "cover");
+}
+
+function isCommandChangeStatusParams(
+  params: StatusEffectParams | undefined,
+): params is CommandChangeStatusParams {
+  return params?.type === "command_change";
+}
+
+function addCommandChangeStatusEffect(input: AddStatusEffectInput): void {
+  if (input.statusEffectId !== "command_change") {
+    return;
+  }
+
+  if (!isCommandChangeStatusParams(input.params)) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} へのコマンド変化に必要な技IDと個数が設定されていません。`,
+    );
+    return;
+  }
+
+  /**
+   * 指定技が技マスターデータに
+   * 存在することを確認する。
+   */
+  if (!skills[input.params.skillId]) {
+    input.state.logs.unshift(
+      `コマンド変化に指定された技ID「${input.params.skillId}」が見つかりません。`,
+    );
+    return;
+  }
+
+  const normalizedCount = Math.max(0, Math.trunc(input.params.count));
+
+  if (normalizedCount === 0) {
+    input.state.logs.unshift(
+      "しかし、変更できるコマンド数が指定されていなかった。",
+    );
+    return;
+  }
+
+  /**
+   * 現在の基礎リールから、
+   * 一時上書きする枠を選ぶ。
+   *
+   * 既存のコマンド変化は参照しない。
+   */
+  const changedSlots = createCommandChangeSlots(
+    input.target,
+    input.params.skillId,
+    normalizedCount,
+  );
+
+  /**
+   * すべての基礎リールが
+   * すでに指定技だけで構成されている場合など。
+   */
+  if (changedSlots.length === 0) {
+    input.state.logs.unshift(
+      `${input.target.definition.name} には変更できるコマンドがなかった。`,
+    );
+    return;
+  }
+
+  /**
+   * コマンド変化は同時に1件だけ保持する。
+   *
+   * 既存状態は単に削除する。
+   * 基礎リールは変更されていないため、
+   * 復元処理は不要。
+   */
+  input.target.statusEffects = input.target.statusEffects.filter(
+    (statusEffect) => {
+      return statusEffect.id !== "command_change";
+    },
+  );
+
+  const duration = input.duration ?? getDefaultStatusDuration("command_change");
+
+  const normalizedDuration = Math.max(0, Math.trunc(duration));
+
+  const category = resolveAppliedStatusEffectCategory(
+    "command_change",
+    input.category,
+  );
+
+  const params: CommandChangeStatusParams = {
+    type: "command_change",
+    skillId: input.params.skillId,
+    count: normalizedCount,
+    changedSlots,
+  };
+
+  input.target.statusEffects.push({
+    id: "command_change",
+    remainingTurns: normalizedDuration,
+    sourceUnitInstanceId: input.sourceUnitInstanceId,
+    sourceSkillId: input.sourceSkillId,
+    category,
+    params,
+  });
+
+  input.state.logs.unshift(
+    `${input.target.definition.name} のコマンドが変化した。`,
+  );
 }

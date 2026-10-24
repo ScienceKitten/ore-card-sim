@@ -74,7 +74,7 @@ export function applyEffectAction(
         return;
       }
 
-      applyHeal(action.amount, targets, context);
+      applyHeal(action, targets, context);
       return;
 
     case "reduce_hp_rate":
@@ -259,16 +259,72 @@ function applyDamage(
 }
 
 function applyHeal(
-  amount: number,
+  action: Extract<
+    EffectAction,
+    {
+      type: "heal";
+    }
+  >,
   targets: BattleUnit[],
   context: EffectContext,
 ): void {
+  /**
+   * 最大HP増加量。
+   *
+   * increaseMaxHpがtrueの場合だけ有効。
+   * 負数によって最大HPが減少しないよう、
+   * 最低0に制限する。
+   *
+   * HPは整数として扱うため、
+   * 小数部分は0方向へ切り捨てる。
+   */
+  const maxHpIncrease =
+    action.increaseMaxHp === true ? Math.max(0, Math.trunc(action.amount)) : 0;
+
   for (const target of targets) {
+    /**
+     * 戦闘不能ユニットには、
+     * 通常回復も最大HP増加も適用しない。
+     */
+    if (target.currentHp <= 0) {
+      continue;
+    }
+
+    /**
+     * 回復無効を持つ場合は、
+     * 最大HP増加と通常回復の両方を無効化する。
+     *
+     * 最大HPを変更する前に判定することが重要。
+     */
+    if (hasStatusEffect(target, "heal_block")) {
+      context.state.logs.unshift(
+        `${target.definition.name} の回復は無効化された。`,
+      );
+
+      continue;
+    }
+
+    /**
+     * 回復が有効な場合に限り、
+     * 通常回復より前に最大HPを増加させる。
+     */
+    if (maxHpIncrease > 0) {
+      target.maxHp += maxHpIncrease;
+
+      context.state.logs.unshift(
+        `${target.definition.name} の最大HPが ${maxHpIncrease} 増加した。`,
+      );
+    }
+
+    /**
+     * 最大HPを増加させた後、
+     * 既存の共通回復処理を実行する。
+     */
     const result = applyHealing({
       state: context.state,
       healer: context.actor,
       target,
-      amount,
+      amount: action.amount,
       sourceType: "skill",
       skill: context.skill,
     });
@@ -277,6 +333,13 @@ function applyHeal(
       continue;
     }
 
+    /**
+     * 上で回復無効を確認しているが、
+     * applyHealing()側の共通判定も残す。
+     *
+     * 将来、回復無効以外の理由でblockedになる場合にも
+     * 対応できる。
+     */
     if (result.blocked) {
       context.state.logs.unshift(
         `${target.definition.name} の回復は無効化された。`,
