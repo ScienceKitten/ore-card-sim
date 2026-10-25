@@ -1182,8 +1182,8 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
-  kusanagi_sward: {
-    id: "kusanagi_sward",
+  kusanagi_sword: {
+    id: "kusanagi_sword",
     name: "草薙剣",
     attributes: ["wind"],
     category: "physical",
