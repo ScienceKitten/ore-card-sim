@@ -454,17 +454,15 @@ function executeEffectsFromIndex(
       );
 
       if (selectableTargets.length === 0) {
-        state.logs.unshift("しかし、対象がいなかった。");
+        state.logs.unshift(`「${skill.name}」の効果には対象がいなかった。`);
 
-        finishSkillAndActorTurn(
-          state,
-          actor,
-          skills,
-          counterEvents,
-          executionInfo,
-        );
-
-        return;
+        /**
+         * 現在のSkillEffectだけを不発にし、
+         * 次のSkillEffectへ進む。
+         *
+         * ここで技終了処理は行わない。
+         */
+        continue;
       }
 
       /**
@@ -521,17 +519,15 @@ function executeEffectsFromIndex(
      * 通常どおり失敗する。
      */
     if (effectiveTargetSelector.type !== "none" && targets.length === 0) {
-      state.logs.unshift("しかし、対象がいなかった。");
+      state.logs.unshift(`「${skill.name}」の効果には対象がいなかった。`);
 
-      finishSkillAndActorTurn(
-        state,
-        actor,
-        skills,
-        counterEvents,
-        executionInfo,
-      );
-
-      return;
+      /**
+       * 対象がいない現在のSkillEffectだけを
+       * スキップする。
+       *
+       * 後続のSkillEffectは通常どおり実行する。
+       */
+      continue;
     }
 
     applySkillEffect(

@@ -1150,6 +1150,56 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  dragon_slayer_attack: {
+    id: "dragon_slayer_attack",
+    name: "竜伐の一撃",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["dragon"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 4,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 2.2,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  kusanagi_sward: {
+    id: "kusanagi_sward",
+    name: "草薙剣",
+    attributes: ["wind"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.8,
+          },
+        ],
+      },
+    ],
+  },
+
   double_edged_sword: {
     id: "double_edged_sword",
     name: "諸刃の剣",
@@ -1463,6 +1513,52 @@ export const skills: Record<string, SkillDefinition> = {
             type: "apply_status_effect",
             statusEffectId: "seal_physical",
             chance: 0.3,
+          },
+        ],
+      },
+    ],
+  },
+  octopus_ink: {
+    id: "octopus_ink",
+    name: "タコスミ",
+    attributes: ["none"],
+    category: "breath",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "seal_physical",
+            chance: 0.6,
+          },
+        ],
+      },
+    ],
+  },
+  octopus_trap: {
+    id: "octopus_trap",
+    name: "オクトパストラップ!",
+    attributes: ["none"],
+    category: "none",
+    effects: [
+      {
+        target: { type: "self" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "counter",
+            duration: 5,
+            params: {
+              type: "counter",
+              requireDamage: true,
+              canCounterOnDeath: false,
+              nullifyCategories: ["breath", "physical", "magic"],
+              counterCategories: ["breath", "physical", "magic"],
+              maxCounterCount: 3,
+              counterActionsToAttacker: [],
+              counterActionsToSelf: [],
+            },
           },
         ],
       },
@@ -2077,6 +2173,11 @@ export const skills: Record<string, SkillDefinition> = {
           {
             type: "damage",
             multiplier: 2.1,
+          },
+          {
+            type: "remove_status_effect",
+            statusEffectIds: ["command_change"],
+            sourceSkillIds: ["vecci_world_tour", "vecci_world_tour_2"],
           },
         ],
       },

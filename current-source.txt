@@ -2,7 +2,7 @@
 PROJECT SOURCE EXPORT
 ==================================================
 Project root: C:\Development\webweb\webgame-ts
-Exported at: 2026-10-24 22:41:46
+Exported at: 2026-10-25 23:31:03
 Source file count: 48
 
 ==================================================
@@ -323,7 +323,10 @@ const reelDisplaySkills =
       return [];
     }
 
-    const reel = reelDisplayUnit.value.reels[reelDisplayReelIndex.value];
+    const reel = getEffectiveReel(
+      reelDisplayUnit.value,
+      reelDisplayReelIndex.value,
+    );
 
     if (!reel) {
       return [];
@@ -3840,6 +3843,21 @@ export const skills: Record<string, SkillDefinition> = {
         ],
       },
       {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "command_change",
+            duration: 1,
+            params: {
+              type: "command_change",
+              skillId: "miss",
+              count: 3,
+            },
+          },
+        ],
+      },
+      {
         target: { type: "self" },
         actions: [
           {
@@ -3864,7 +3882,7 @@ export const skills: Record<string, SkillDefinition> = {
     category: "magic",
     effects: [
       {
-        target: { type: "all_allies", includeSelf: true },
+        target: { type: "self" },
         actions: [
           {
             type: "apply_status_effect",
@@ -3878,6 +3896,7 @@ export const skills: Record<string, SkillDefinition> = {
               },
             },
           },
+
           {
             type: "apply_status_effect",
             statusEffectId: "speed_change",
@@ -3888,6 +3907,52 @@ export const skills: Record<string, SkillDefinition> = {
                 kind: "multiplier",
                 value: 1.8,
               },
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "all_allies", includeSelf: false },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "attack_change",
+            duration: 1,
+            params: {
+              type: "attack_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+
+          {
+            type: "apply_status_effect",
+            statusEffectId: "speed_change",
+            duration: 1,
+            params: {
+              type: "speed_change",
+              change: {
+                kind: "multiplier",
+                value: 1.8,
+              },
+            },
+          },
+        ],
+      },
+
+      {
+        target: { type: "all_enemies" },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "command_change",
+            duration: 1,
+            params: {
+              type: "command_change",
+              skillId: "miss",
+              count: 3,
             },
           },
         ],
