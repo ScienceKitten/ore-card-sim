@@ -2254,6 +2254,83 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  issai_kaiku: {
+    id: "issai_kaiku",
+    name: "一切皆苦",
+    attributes: ["earth"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "damage",
+            multiplier: 1.7,
+          },
+          {
+            type: "change_reel",
+            amount: -1,
+          },
+        ],
+      },
+    ],
+  },
+  mugen_zigoku: {
+    id: "mugen_zigoku",
+    name: "無間地獄",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: {
+          type: "all_enemies",
+        },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "damage_chain",
+            params: {
+              type: "damage_chain",
+              multiplier: 1,
+            },
+          },
+        ],
+      },
+      {
+        target: { type: "all_allies", includeSelf: false },
+        actions: [
+          {
+            type: "apply_status_effect",
+            statusEffectId: "damage_chain",
+            params: {
+              type: "damage_chain",
+              multiplier: 1,
+            },
+          },
+        ],
+      },
+      {
+        target: {
+          type: "self",
+        },
+        actions: [
+          {
+            type: "heal",
+            amount: 300,
+            increaseMaxHp: true,
+          },
+        ],
+      },
+      {
+        target: { type: "none" },
+        actions: [
+          {
+            type: "extra_action",
+          },
+        ],
+      },
+    ],
+  },
   grand_parade: {
     id: "grand_parade",
     name: "大行侵",

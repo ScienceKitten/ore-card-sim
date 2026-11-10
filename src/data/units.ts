@@ -1184,6 +1184,31 @@ export const units: UnitDefinition[] = [
     specialGaugeConsumption: 6,
   },
   {
+    id: "auslese_evil_emperor",
+    name: "邪帝アウスレーゼ",
+    maxHp: 467,
+    attack: 88,
+    speed: 22,
+    species: "undead",
+    attribute: "earth",
+    gender: "female",
+    reels: [
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      ["miss", "issai_kaiku", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "attack",
+        "attack_evil_emperor",
+        "attack_evil_emperor",
+        "attack_evil_emperor",
+        "attack_evil_emperor",
+        "attack_evil_emperor",
+      ],
+    ],
+    specialSkillId: "mugen_zigoku",
+    defaultItemId: "poison_orb",
+  },
+  {
     id: "Leonard_demon_king_demon",
     name: "魔王レオナーレ（魔王の一撃）",
     maxHp: 342,
@@ -1331,6 +1356,7 @@ export const units: UnitDefinition[] = [
     ],
     specialSkillId: "vastila_tempest",
   },
+
   {
     id: "test_unit",
     name: "テストユニット",
