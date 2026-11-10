@@ -2331,6 +2331,184 @@ export const skills: Record<string, SkillDefinition> = {
       },
     ],
   },
+  holy_sword: {
+    id: "holy_sword",
+    name: "ホーリーソード",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["undead", "demon"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 3.638,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 2.033,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  exorcism_sword: {
+    id: "exorcism_sword",
+    name: "エクソシズムソード",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["undead", "demon"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 4.173,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 2.568,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  heavens_sword: {
+    id: "heavens_sword",
+    name: "ヘブンズソード",
+    attributes: ["none"],
+    category: "physical",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["undead", "demon"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 5.243,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 3.103,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  sanctuary_sword: {
+    id: "sanctuary_sword",
+    name: "サンクチュアリソード",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "single_enemy" },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["undead", "demon"],
+            },
+            matchedActions: [
+              {
+                type: "damage",
+                multiplier: 6.313,
+              },
+            ],
+            unmatchedActions: [
+              {
+                type: "damage",
+                multiplier: 3.745,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  holy_rite: {
+    id: "holy_rite",
+    name: "神聖なる祭儀",
+    attributes: ["none"],
+    category: "magic",
+    effects: [
+      {
+        target: { type: "all_allies", includeSelf: true },
+        actions: [
+          {
+            type: "conditional_action",
+
+            conditions: {
+              species: ["knight", "angel", "mage"],
+            },
+            matchedActions: [
+              {
+                type: "apply_status_effect",
+                statusEffectId: "attack_change",
+                params: {
+                  type: "attack_change",
+                  stackingMode: "always_stack",
+                  change: {
+                    kind: "flat",
+                    value: 30,
+                  },
+                },
+              },
+            ],
+            unmatchedActions: [],
+          },
+          {
+            type: "replace_skill_on_target",
+            fromSkillId: "attack_power1",
+            toSkillId: "holy_sword",
+          },
+          {
+            type: "replace_skill_on_target",
+            fromSkillId: "attack_critical",
+            toSkillId: "exorcism_sword",
+          },
+          {
+            type: "replace_skill_on_target",
+            fromSkillId: "attack_lethal",
+            toSkillId: "heavens_sword",
+          },
+        ],
+      },
+    ],
+  },
   grand_parade: {
     id: "grand_parade",
     name: "大行侵",
