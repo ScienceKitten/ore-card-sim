@@ -1242,7 +1242,7 @@ export const units: UnitDefinition[] = [
     name: "邪帝アウスレーゼ",
     maxHp: 467,
     attack: 88,
-    speed: 22,
+    speed: 25,
     species: "undead",
     attribute: "earth",
     gender: "female",
