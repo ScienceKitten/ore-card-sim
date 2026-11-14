@@ -2258,14 +2258,14 @@ export const skills: Record<string, SkillDefinition> = {
     id: "issai_kaiku",
     name: "一切皆苦",
     attributes: ["earth"],
-    category: "magic",
+    category: "physical",
     effects: [
       {
         target: { type: "single_enemy" },
         actions: [
           {
             type: "damage",
-            multiplier: 1.7,
+            multiplier: 1.8,
           },
           {
             type: "change_reel",

@@ -1240,18 +1240,25 @@ export const units: UnitDefinition[] = [
   {
     id: "auslese_evil_emperor",
     name: "邪帝アウスレーゼ",
-    maxHp: 467,
+    maxHp: 466,
     attack: 88,
     speed: 25,
     species: "undead",
     attribute: "earth",
     gender: "female",
     reels: [
-      ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
+      [
+        "miss",
+        "attack_evil_emperor",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+        "reel_up",
+      ],
       ["attack", "reel_up", "reel_up", "reel_up", "reel_up", "reel_up"],
       ["miss", "issai_kaiku", "reel_up", "reel_up", "reel_up", "reel_up"],
       [
-        "attack",
+        "attack_power1",
         "attack_evil_emperor",
         "attack_evil_emperor",
         "attack_evil_emperor",
